@@ -28,8 +28,8 @@ def _start_ollama():
     print("[VELMA] Ollama no esta corriendo. Iniciando...", file=sys.stderr)
     _ollama_process = subprocess.Popen(
         ["ollama", "serve"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
+        stdout=sys.stderr,
+        stderr=sys.stderr
     )
     for _ in range(OLLAMA_STARTUP_TIMEOUT):
         time.sleep(1)
