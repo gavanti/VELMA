@@ -48,4 +48,7 @@ Usa el script de seed o inserción manual en SQLite para guardar una solución v
 ## 📂 Archivos de Referencia
 - `knowledge.db`: Base de datos SQLite (Memoria local).
 - `shared_knowledge.db`: Base de datos compartida (Memoria colectiva).
-- `CLAUDE.md`: Protocolo de implementación técnica.
+- `CLAUDE.md`: Instrucciones para Claude.
+- `gemini.md`: Instrucciones para Gemini.
+- `INSTRUCTIONS.md`: Instrucciones universales para cualquier agente.
+
