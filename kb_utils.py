@@ -87,13 +87,30 @@ def cosine_similarity(vec1, vec2):
         return 0.0
 
 # ============================================================
-# Embedding Model (singleton multilingüe profesional)
+# Embedding Model (Ollama + fallback a SentenceTransformers)
 # ============================================================
 
 _embedding_model = None
+_use_ollama_embeddings = None
+
+def check_ollama_embeddings():
+    """Verifica si Ollama está disponible y tiene el modelo nomic-embed-text"""
+    global _use_ollama_embeddings
+    if _use_ollama_embeddings is not None:
+        return _use_ollama_embeddings
+    try:
+        import ollama
+        models = ollama.list()
+        # Verificar si nomic-embed-text está descargado
+        has_nomic = any('nomic-embed-text' in m.get('name', '') or 'nomic-embed-text' in m.get('model', '') for m in models.get('models', []))
+        _use_ollama_embeddings = has_nomic
+        return has_nomic
+    except:
+        _use_ollama_embeddings = False
+        return False
 
 def get_embedding_model():
-    """Retorna el modelo multilingüe como singleton."""
+    """Retorna el modelo fallback como singleton si Ollama no está disponible."""
     global _embedding_model
     if _embedding_model is None:
         from sentence_transformers import SentenceTransformer
@@ -103,16 +120,33 @@ def get_embedding_model():
 def encode_text(text: str) -> bytes:
     """Genera embedding BLOB para un texto"""
     if not text: return None
-    model = get_embedding_model()
-    vec = model.encode(text, convert_to_numpy=True)
-    return vec.astype(np.float32).tobytes()
+    
+    if check_ollama_embeddings():
+        import ollama
+        resp = ollama.embeddings(model='nomic-embed-text', prompt=text)
+        vec = np.array(resp['embedding'], dtype=np.float32)
+        return vec.tobytes()
+    else:
+        model = get_embedding_model()
+        vec = model.encode(text, convert_to_numpy=True)
+        return vec.astype(np.float32).tobytes()
 
 def encode_texts(texts: list) -> list:
     """Genera embeddings en batch"""
     if not texts: return []
-    model = get_embedding_model()
-    vecs = model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
-    return [v.astype(np.float32).tobytes() for v in vecs]
+    
+    if check_ollama_embeddings():
+        import ollama
+        results = []
+        for text in texts:
+            resp = ollama.embeddings(model='nomic-embed-text', prompt=text)
+            vec = np.array(resp['embedding'], dtype=np.float32)
+            results.append(vec.tobytes())
+        return results
+    else:
+        model = get_embedding_model()
+        vecs = model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
+        return [v.astype(np.float32).tobytes() for v in vecs]
 
 # ============================================================
 # Ollama Enricher (Traducción y Enriquecimiento Opcional)

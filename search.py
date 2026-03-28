@@ -89,20 +89,34 @@ class KnowledgeSearch:
         self.close()
     
     # ============================================
+    # FTS5 Sanitization
+    # ============================================
+    def _sanitize_fts_query(self, query: str) -> str:
+        """
+        Sanitiza la query para FTS5 envolviendo cada término en comillas dobles.
+        Esto evita errores de sintaxis (OperationalError) si el usuario ingresa
+        caracteres especiales como '.', '*', '^', 'AND', 'OR', etc.
+        """
+        if not query:
+            return '""'
+        terms = query.strip().split()
+        return " ".join(f'"{term}"' for term in terms) if terms else '""'
+
+    # ============================================
     # Búsqueda FTS5
     # ============================================
     
     def search_fts_issues(self, query: str, limit: int = 20) -> List[Tuple[int, float]]:
         """Busca en issues_log usando FTS5"""
+        safe_query = self._sanitize_fts_query(query)
         try:
-            # Usar MATCH de FTS5
             self.cursor.execute("""
                 SELECT rowid, rank
                 FROM issues_log_fts
                 WHERE issues_log_fts MATCH ?
                 ORDER BY rank
                 LIMIT ?
-            """, (query, limit))
+            """, (safe_query, limit))
             
             results = []
             for row in self.cursor.fetchall():
@@ -119,6 +133,7 @@ class KnowledgeSearch:
     
     def search_fts_docs(self, query: str, limit: int = 20) -> List[Tuple[int, float]]:
         """Busca en docs_index usando FTS5"""
+        safe_query = self._sanitize_fts_query(query)
         try:
             self.cursor.execute("""
                 SELECT rowid, rank
@@ -126,7 +141,7 @@ class KnowledgeSearch:
                 WHERE docs_index_fts MATCH ?
                 ORDER BY rank
                 LIMIT ?
-            """, (query, limit))
+            """, (safe_query, limit))
             
             results = []
             for row in self.cursor.fetchall():
@@ -141,6 +156,7 @@ class KnowledgeSearch:
     
     def search_fts_files(self, query: str, limit: int = 20) -> List[Tuple[int, float]]:
         """Busca en files_index usando FTS5"""
+        safe_query = self._sanitize_fts_query(query)
         try:
             self.cursor.execute("""
                 SELECT rowid, rank
@@ -148,7 +164,7 @@ class KnowledgeSearch:
                 WHERE files_index_fts MATCH ?
                 ORDER BY rank
                 LIMIT ?
-            """, (query, limit))
+            """, (safe_query, limit))
             
             results = []
             for row in self.cursor.fetchall():
@@ -163,6 +179,7 @@ class KnowledgeSearch:
     
     def search_fts_reasoning(self, query: str, limit: int = 20) -> List[Tuple[int, float]]:
         """Busca en reasoning_log usando FTS5"""
+        safe_query = self._sanitize_fts_query(query)
         try:
             self.cursor.execute("""
                 SELECT rowid, rank
@@ -170,7 +187,7 @@ class KnowledgeSearch:
                 WHERE reasoning_log_fts MATCH ?
                 ORDER BY rank
                 LIMIT ?
-            """, (query, limit))
+            """, (safe_query, limit))
             
             results = []
             for row in self.cursor.fetchall():

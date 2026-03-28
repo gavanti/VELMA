@@ -54,6 +54,24 @@ function Start-VelmaInstall {
         Update-Files
     }
 
+    # Instalar Ollama si no existe (silencioso)
+    if (!(Get-Command ollama -ErrorAction SilentlyContinue)) {
+        Write-Host "`n[*] Ollama no detectado. Instalando motor de IA local..." -ForegroundColor Cyan
+        Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile "OllamaSetup.exe"
+        Start-Process -Wait -FilePath ".\OllamaSetup.exe" -ArgumentList "/S" -PassThru | Out-Null
+        Remove-Item "OllamaSetup.exe" -Force
+        # Refrescar Path
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+    }
+
+    # Pull de modelos de Ollama si esta disponible
+    if (Get-Command ollama -ErrorAction SilentlyContinue) {
+        Write-Host "[*] Descargando modelo ligero de traduccion (llama3.2:1b)..." -ForegroundColor Cyan
+        ollama pull llama3.2:1b | Out-Null
+        Write-Host "[*] Descargando modelo de embeddings (nomic-embed-text)..." -ForegroundColor Cyan
+        ollama pull nomic-embed-text | Out-Null
+    }
+
     # Lanzar instalador de Python (siempre, para asegurar DB y dependencias)
     if (Get-Command python -ErrorAction SilentlyContinue) {
         Write-Host "`n[*] Verificando integridad del sistema..." -ForegroundColor Magenta
