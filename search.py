@@ -195,10 +195,7 @@ class KnowledgeSearch:
     def search_issues(self, query: str, limit: int = 10) -> List[SearchResult]:
         fts_results = self.search_fts_issues(query, limit * 2)
         try:
-            vector_query = query
-            if self.enricher and self.enricher.available:
-                vector_query = self.enricher.translate_and_enrich(query)
-            query_emb = encode_text(vector_query)
+            query_emb = encode_text(query)
             vector_results = self.search_vector_issues(query_emb, limit * 2)
         except Exception:
             vector_results = []
@@ -249,10 +246,7 @@ class KnowledgeSearch:
     def search_docs(self, query: str, limit: int = 10) -> List[SearchResult]:
         fts_results = self.search_fts_docs(query, limit * 2)
         try:
-            vector_query = query
-            if self.enricher and self.enricher.available:
-                vector_query = self.enricher.translate_and_enrich(query)
-            query_emb = encode_text(vector_query)
+            query_emb = encode_text(query)
             vector_results = self.search_vector_docs(query_emb, limit * 2)
         except Exception:
             vector_results = []
