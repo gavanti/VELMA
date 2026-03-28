@@ -35,11 +35,14 @@ function Start-VelmaInstall {
         if ($choice -eq "n") { Write-Host "Abortado."; return }
 
         Write-Host "[*] Descargando VELMA desde el repositorio..." -ForegroundColor Cyan
+        
+        $tempDir = ".temp_velma_$(Get-Random)"
         if (Get-Command git -ErrorAction SilentlyContinue) {
-            # Clonar si hay Git
-            git clone --depth 1 $REPO_URL .temp_velma
-            Move-Item .temp_velma/* . -Force
-            Remove-Item .temp_velma -Recurse -Force
+            # Clonar en carpeta temporal para evitar colision de .git
+            git clone --depth 1 $REPO_URL $tempDir
+            # Mover archivos excepto la carpeta .git de VELMA
+            Get-ChildItem -Path "$tempDir\*" -Exclude ".git" | Move-Item -Destination "." -Force
+            Remove-Item $tempDir -Recurse -Force
         } else {
             # Descarga por ZIP si no hay Git (más universal)
             Write-Host "[*] Git no detectado, descargando via WebRequest..." -ForegroundColor Yellow
