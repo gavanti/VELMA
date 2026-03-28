@@ -2,7 +2,7 @@
 # Usage: irm https://raw.githubusercontent.com/TU_USUARIO/VELMA/main/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
-$REPO_URL = "https://github.com/TU_USUARIO/VELMA.git" # <-- CAMBIA ESTO POR TU URL REAL
+$REPO_URL = "https://github.com/gavanti/VELMA.git"
 
 function Show-Header {
     Clear-Host

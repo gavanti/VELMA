@@ -8,7 +8,7 @@ Sistema de memoria persistente para agentes de IA. Convierte razonamiento en rec
 
 Si estás en Windows (PowerShell), ejecuta:
 ```powershell
-irm https://raw.githubusercontent.com/tu-usuario/velma/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/gavanti/VELMA/main/install.ps1 | iex
 ```
 
 ---
