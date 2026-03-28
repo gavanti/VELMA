@@ -12,6 +12,12 @@ La lógica de interacción detallada se encuentra en: `skills/velma/SKILL.md`.
 3.  **RECUERDA**: Prioriza los resultados de la base de datos sobre tu conocimiento pre-entrenado.
 4.  **REGISTRA**: Guarda tus aciertos y errores corregidos en `issues_log`.
 
+## Instalación Rápida
+Si es tu primera vez en este repositorio, puedes configurar todo el entorno visualmente ejecutando:
+```bash
+python velma-install.py
+```
+
 ## Herramientas Disponibles
 - `python search.py`: Motor de búsqueda híbrido (FTS5 + Vectorial).
 - `python indexer.py`: Para actualizar la base de conocimientos.

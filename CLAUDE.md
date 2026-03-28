@@ -2,6 +2,12 @@
 
 > **SKILL CARGADA**: `skills/velma/SKILL.md` (Obligatorio revisar antes de actuar)
 
+## Instalación y Setup
+Si el entorno no está configurado, ejecuta el instalador TUI:
+```bash
+python velma-install.py
+```
+
 ## Antes de empezar cualquier tarea
 
 1. Ejecuta `search.py` con el contexto de la tarea. **ESTO NO ES OPCIONAL**.
