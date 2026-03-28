@@ -18,7 +18,7 @@ try:
     from kb_utils import (
         compute_hash, compute_file_hash, format_json_field,
         detect_chunk_type, get_chunk_weight,
-        encode_text, encode_texts
+        encode_text, encode_texts, OllamaEnricher
     )
 except ImportError:
     # Si no existe kb_utils, definir funciones básicas
@@ -60,6 +60,10 @@ except ImportError:
 
     def encode_texts(texts: list) -> list:
         return [None] * len(texts)
+
+    class OllamaEnricher:
+        def __init__(self, model=None): self.available = False
+        def translate_and_enrich(self, text): return text
 
 # Configuración
 DB_NAME = "knowledge.db"
@@ -103,9 +107,11 @@ IGNORE_FILES = {
 class KnowledgeIndexer:
     """Indexador de conocimiento para el knowledge base"""
     
-    def __init__(self, db_path: str = DB_NAME, project_path: str = "."):
+    def __init__(self, db_path: str = DB_NAME, project_path: str = ".", use_ollama: bool = True):
         self.db_path = db_path
         self.project_path = Path(project_path).resolve()
+        self.use_ollama = use_ollama
+        self.enricher = OllamaEnricher() if use_ollama else None
         self.conn = None
         self.cursor = None
         self.stats = {
@@ -502,6 +508,17 @@ class KnowledgeIndexer:
 
             # Generar embeddings en batch (título + cuerpo como texto de consulta)
             chunk_texts = [f"{c['title']} {c['body']}" for c in chunks]
+            
+            # Enriquecimiento bilingüe con Ollama (opcional)
+            if self.enricher and self.enricher.available:
+                print(f"  [*] Enriqueciendo {len(chunks)} chunks con Ollama ({self.enricher.model})...")
+                enriched_texts = []
+                for i, t in enumerate(chunk_texts):
+                    enriched = self.enricher.translate_and_enrich(t)
+                    enriched_texts.append(enriched)
+                    if (i+1) % 5 == 0: print(f"      {i+1}/{len(chunks)}...")
+                chunk_texts = enriched_texts
+
             chunk_embeddings = encode_texts(chunk_texts)
 
             # Insertar chunks

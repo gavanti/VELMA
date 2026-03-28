@@ -1,6 +1,15 @@
-sentence-transformers>=2.2.0
-sqlite-vec>=0.1.0
+# Core dependencies
 numpy>=1.24.0
-watchdog>=3.0.0
 python-dotenv>=1.0.0
+
+# Optional: For semantic search with local embeddings
+# sentence-transformers>=2.2.0
+
+# Optional: For file watching
+# watchdog>=3.0.0
+
+# Web panel (Fase 3)
 flask>=2.3.0
+
+# Optional: Vector search extension
+# sqlite-vec>=0.1.0

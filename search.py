@@ -19,14 +19,13 @@ from dataclasses import dataclass
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 
 # Embeddings y similitud
-from kb_utils import cosine_similarity, encode_text
+from kb_utils import cosine_similarity, encode_text, OllamaEnricher
 
 # Configuración
 DB_NAME = "knowledge.db"
 DEFAULT_K = 60   # Constante para RRF
-MIN_CONFIDENCE_SCORE = 0.50  # Threshold para búsqueda vectorial
-                              # (0.75 es muy estricto para KB pequeñas;
-                              #  ajustar a 0.65-0.75 cuando la KB tenga >500 entradas)
+MIN_CONFIDENCE_SCORE = 0.50
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2:1b')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'velma-kb-secret-key')
@@ -62,8 +61,10 @@ class SearchResult:
 class KnowledgeSearch:
     """Motor de búsqueda híbrida para el knowledge base"""
     
-    def __init__(self, db_path: str = DB_NAME):
+    def __init__(self, db_path: str = DB_NAME, use_ollama: bool = True):
         self.db_path = db_path
+        self.use_ollama = use_ollama
+        self.enricher = OllamaEnricher(model=OLLAMA_MODEL) if use_ollama else None
         self.conn = None
         self.cursor = None
     
@@ -259,12 +260,16 @@ class KnowledgeSearch:
 
     def search_issues(self, query: str, limit: int = 10) -> List[SearchResult]:
         """Busca en issues_log con búsqueda híbrida FTS5 + vector + RRF."""
-        # FTS5
+        # FTS5 (usa query original para exact match)
         fts_results = self.search_fts_issues(query, limit * 2)
 
-        # Vector (genera embedding del query una sola vez)
+        # Vector (enriquecimiento bilingüe con Ollama)
         try:
-            query_emb = encode_text(query)
+            vector_query = query
+            if self.enricher and self.enricher.available:
+                vector_query = self.enricher.translate_and_enrich(query)
+            
+            query_emb = encode_text(vector_query)
             vector_results = self.search_vector_issues(query_emb, limit * 2)
         except Exception:
             query_emb = None
@@ -320,9 +325,13 @@ class KnowledgeSearch:
         # FTS5
         fts_results = self.search_fts_docs(query, limit * 2)
 
-        # Vector
+        # Vector (enriquecimiento bilingüe con Ollama)
         try:
-            query_emb = encode_text(query)
+            vector_query = query
+            if self.enricher and self.enricher.available:
+                vector_query = self.enricher.translate_and_enrich(query)
+            
+            query_emb = encode_text(vector_query)
             vector_results = self.search_vector_docs(query_emb, limit * 2)
         except Exception:
             query_emb = None

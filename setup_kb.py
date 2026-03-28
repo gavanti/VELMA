@@ -11,20 +11,20 @@ import hashlib
 from pathlib import Path
 from datetime import datetime, timedelta
 
-# Configuración
+# Configuraci n
 DB_NAME = "knowledge.db"
 MODEL_NAME = "all-MiniLM-L6-v2"
 MODEL_PATH = Path("./models")
 
 def get_db_version():
-    """Obtiene la versión de SQLite"""
+    """Obtiene la versi n de SQLite"""
     conn = sqlite3.connect(":memory:")
     version = conn.execute("SELECT sqlite_version()").fetchone()[0]
     conn.close()
     return version
 
 def check_sqlite_features():
-    """Verifica características disponibles de SQLite"""
+    """Verifica caracter sticas disponibles de SQLite"""
     conn = sqlite3.connect(":memory:")
     cursor = conn.cursor()
     
@@ -54,10 +54,10 @@ def create_database():
     
     # Eliminar DB existente para recrear (solo en setup inicial)
     if db_path.exists():
-        print(f"🗑️  Eliminando base de datos existente: {DB_NAME}")
+        print(f"[DELETE]  Eliminando base de datos existente: {DB_NAME}")
         db_path.unlink()
     
-    print(f"📦 Creando base de datos: {DB_NAME}")
+    print(f"[db] Creando base de datos: {DB_NAME}")
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
@@ -67,7 +67,7 @@ def create_database():
     # ============================================
     # TABLA: issues_log - errores y resoluciones
     # ============================================
-    print("  📋 Creando tabla issues_log...")
+    print("  [task] Creando tabla issues_log...")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS issues_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +91,7 @@ def create_database():
         );
     """)
     
-    # Índice FTS5 para issues_log
+    #  ndice FTS5 para issues_log
     cursor.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS issues_log_fts USING fts5(
             error, resolution, context, approach, tags,
@@ -125,9 +125,9 @@ def create_database():
     """)
     
     # ============================================
-    # TABLA: docs_index - documentación y reglas
+    # TABLA: docs_index - documentaci n y reglas
     # ============================================
-    print("  📚 Creando tabla docs_index...")
+    print("  [DOCS] Creando tabla docs_index...")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS docs_index (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,7 +136,7 @@ def create_database():
             chunk_body TEXT NOT NULL,
             chunk_type TEXT CHECK(chunk_type IN ('constraint', 'rule', 'procedure', 'concept', 'example')) DEFAULT 'concept',
             order_in_doc INTEGER,
-            embedding BLOB,  -- Vector para búsqueda semántica
+            embedding BLOB,  -- Vector para b squeda sem ntica
             hash TEXT,
             verified BOOLEAN DEFAULT 0,
             applies_to TEXT,  -- JSON
@@ -144,7 +144,7 @@ def create_database():
         );
     """)
     
-    # Índice FTS5 para docs_index
+    #  ndice FTS5 para docs_index
     cursor.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS docs_index_fts USING fts5(
             chunk_title, chunk_body,
@@ -180,7 +180,7 @@ def create_database():
     # ============================================
     # TABLA: files_index - archivos procesados
     # ============================================
-    print("  📁 Creando tabla files_index...")
+    print("  [FILES] Creando tabla files_index...")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS files_index (
             path TEXT PRIMARY KEY,
@@ -191,7 +191,7 @@ def create_database():
         );
     """)
     
-    # Índice FTS5 para files_index
+    #  ndice FTS5 para files_index
     cursor.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS files_index_fts USING fts5(
             path, summary,
@@ -227,7 +227,7 @@ def create_database():
     # ============================================
     # TABLA: functions_index - funciones/procedimientos
     # ============================================
-    print("  ⚙️  Creando tabla functions_index...")
+    print("  [CONFIG]  Creando tabla functions_index...")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS functions_index (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -248,7 +248,7 @@ def create_database():
     # ============================================
     # TABLA: reasoning_log - razonamientos del agente
     # ============================================
-    print("  💭 Creando tabla reasoning_log...")
+    print("    Creando tabla reasoning_log...")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS reasoning_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -263,7 +263,7 @@ def create_database():
         );
     """)
     
-    # Índice FTS5 para reasoning_log
+    #  ndice FTS5 para reasoning_log
     cursor.execute("""
         CREATE VIRTUAL TABLE IF NOT EXISTS reasoning_log_fts USING fts5(
             task, approach, outcome,
@@ -299,7 +299,7 @@ def create_database():
     # ============================================
     # TABLA: schemas_index - esquemas de base de datos
     # ============================================
-    print("  🗄️  Creando tabla schemas_index...")
+    print("      Creando tabla schemas_index...")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS schemas_index (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -315,7 +315,7 @@ def create_database():
     # ============================================
     # TABLA: session_metadata - metadatos de sesiones
     # ============================================
-    print("  📅 Creando tabla session_metadata...")
+    print("    Creando tabla session_metadata...")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS session_metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -333,7 +333,7 @@ def create_database():
     # ============================================
     # TABLA: shared_chunks - chunks compartidos (sync)
     # ============================================
-    print("  🔄 Creando tabla shared_chunks...")
+    print("    Creando tabla shared_chunks...")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS shared_chunks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -348,9 +348,9 @@ def create_database():
     """)
     
     # ============================================
-    # Índices adicionales para performance
+    #  ndices adicionales para performance
     # ============================================
-    print("  🔧 Creando índices...")
+    print("    Creando  ndices...")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_issues_status ON issues_log(status);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_issues_owner ON issues_log(owner);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_issues_fingerprint ON issues_log(fingerprint);")
@@ -377,26 +377,26 @@ def create_database():
     conn.commit()
     conn.close()
     
-    print(f"✅ Base de datos creada exitosamente: {DB_NAME}")
+    print(f"[OK] Base de datos creada exitosamente: {DB_NAME}")
     return True
 
 def create_config_file():
-    """Crea archivo de configuración .env.example"""
+    """Crea archivo de configuraci n .env.example"""
     config_content = """# VELMA Knowledge Base Configuration
 
 # Base de datos
 DB_PATH=knowledge.db
 
-# Modelo de embeddings (opcional - para búsqueda semántica avanzada)
+# Modelo de embeddings (opcional - para b squeda sem ntica avanzada)
 MODEL_NAME=all-MiniLM-L6-v2
 MODEL_PATH=./models
 
-# Configuración de sync (Fase 4)
+# Configuraci n de sync (Fase 4)
 SUPABASE_URL=
 SUPABASE_KEY=
 SUPABASE_TABLE=shared_knowledge
 
-# Configuración de expiración
+# Configuraci n de expiraci n
 DEFAULT_EXPIRY_DAYS=90
 MIN_CONFIDENCE_SCORE=0.75
 VECTOR_SIMILARITY_THRESHOLD=0.85
@@ -406,7 +406,7 @@ GITHUB_TOKEN=
 REPO_OWNER=
 REPO_NAME=
 
-# Configuración del dev
+# Configuraci n del dev
 DEV_NAME=developer
 PROJECT_NAME=my_project
 """
@@ -414,7 +414,7 @@ PROJECT_NAME=my_project
     with open(".env.example", "w") as f:
         f.write(config_content)
     
-    print("✅ Archivo .env.example creado")
+    print("[OK] Archivo .env.example creado")
 
 def create_requirements():
     """Crea archivo requirements.txt"""
@@ -438,10 +438,10 @@ flask>=2.3.0
     with open("requirements.txt", "w") as f:
         f.write(requirements)
     
-    print("✅ Archivo requirements.txt creado")
+    print("[OK] Archivo requirements.txt creado")
 
 def create_utils_module():
-    """Crea módulo de utilidades para el knowledge base"""
+    """Crea m dulo de utilidades para el knowledge base"""
     utils_code = '''"""
 VELMA - Knowledge Base Utilities
 Funciones auxiliares para el sistema de knowledge base
@@ -473,32 +473,32 @@ def format_json_field(data: list or dict) -> str:
     return json.dumps(data, ensure_ascii=False)
 
 def get_expiry_date(days: int = 90) -> str:
-    """Calcula fecha de expiración"""
+    """Calcula fecha de expiraci n"""
     expiry = datetime.now() + timedelta(days=days)
     return expiry.isoformat()
 
 def detect_chunk_type(title: str, body: str) -> str:
-    """Detecta automáticamente el tipo de chunk basado en contenido"""
+    """Detecta autom ticamente el tipo de chunk basado en contenido"""
     title_lower = title.lower()
     body_lower = body.lower()
     
     # Palabras clave para constraints
-    constraint_keywords = ['nunca', 'siempre', 'obligatorio', 'prohibido', 'exactamente', 'solo', 'único']
+    constraint_keywords = ['nunca', 'siempre', 'obligatorio', 'prohibido', 'exactamente', 'solo', ' nico']
     if any(kw in title_lower or kw in body_lower for kw in constraint_keywords):
         return 'constraint'
     
     # Palabras clave para rules
-    rule_keywords = ['regla', 'política', 'debe', 'requiere', 'acumula', 'canjea']
+    rule_keywords = ['regla', 'pol tica', 'debe', 'requiere', 'acumula', 'canjea']
     if any(kw in title_lower or kw in body_lower for kw in rule_keywords):
         return 'rule'
     
     # Palabras clave para procedures
-    procedure_keywords = ['paso', 'cómo', 'para', 'seguir', 'proceso', 'registrar']
+    procedure_keywords = ['paso', 'c mo', 'para', 'seguir', 'proceso', 'registrar']
     if any(kw in title_lower or kw in body_lower for kw in procedure_keywords):
         return 'procedure'
     
     # Palabras clave para examples
-    example_keywords = ['ejemplo', 'ilustración', 'caso', 'muestra']
+    example_keywords = ['ejemplo', 'ilustraci n', 'caso', 'muestra']
     if any(kw in title_lower or kw in body_lower for kw in example_keywords):
         return 'example'
     
@@ -541,23 +541,23 @@ def cosine_similarity(vec1, vec2):
     with open("kb_utils.py", "w") as f:
         f.write(utils_code)
     
-    print("✅ Módulo kb_utils.py creado")
+    print("[OK] M dulo kb_utils.py creado")
 
 def verify_setup():
-    """Verifica que todo esté configurado correctamente"""
+    """Verifica que todo est  configurado correctamente"""
     print("\\n" + "="*50)
-    print("VERIFICACIÓN DEL SETUP")
+    print("VERIFICACI N DEL SETUP")
     print("="*50)
     
-    # Versión de SQLite
+    # Versi n de SQLite
     sqlite_version = get_db_version()
-    print(f"\\n📦 SQLite versión: {sqlite_version}")
+    print(f"\\n[db] SQLite versi n: {sqlite_version}")
     
-    # Características disponibles
+    # Caracter sticas disponibles
     features = check_sqlite_features()
-    print(f"🔍 Características:")
+    print(f"[SEARCH] Caracter sticas:")
     for feat, available in features.items():
-        status = "✅" if available else "❌"
+        status = "[OK]" if available else "[ERR]"
         print(f"   {status} {feat}")
     
     # Verificar base de datos
@@ -568,12 +568,12 @@ def verify_setup():
         # Listar tablas
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
         tables = cursor.fetchall()
-        print(f"\\n📊 Tablas creadas ({len(tables)}):")
+        print(f"\\n  Tablas creadas ({len(tables)}):")
         for table in tables:
-            print(f"   • {table[0]}")
+            print(f"     {table[0]}")
         
         # Contar registros en tablas principales
-        print(f"\\n📈 Estado inicial:")
+        print(f"\\n  Estado inicial:")
         for table_name in ['issues_log', 'docs_index', 'files_index', 'reasoning_log']:
             try:
                 cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
@@ -584,16 +584,16 @@ def verify_setup():
         
         conn.close()
     else:
-        print("❌ Base de datos no encontrada")
+        print("[ERR] Base de datos no encontrada")
         return False
     
     print("\\n" + "="*50)
-    print("✅ SETUP COMPLETADO EXITOSAMENTE")
+    print("[OK] SETUP COMPLETADO EXITOSAMENTE")
     print("="*50)
     return True
 
 def main():
-    """Función principal de setup"""
+    """Funci n principal de setup"""
     print("="*60)
     print("  VELMA - Knowledge Base Setup (Fase 1)")
     print("  Sistema de Memoria Persistente para Agentes de IA")
@@ -604,20 +604,20 @@ def main():
     try:
         create_database()
     except Exception as e:
-        print(f"❌ Error creando base de datos: {e}")
+        print(f"[ERR] Error creando base de datos: {e}")
         import traceback
         traceback.print_exc()
         return 1
     
-    # 2. Crear archivos de configuración
+    # 2. Crear archivos de configuraci n
     create_config_file()
     create_requirements()
     create_utils_module()
     
-    # 3. Verificación final
+    # 3. Verificaci n final
     verify_setup()
     
-    print("\\n📋 Próximos pasos:")
+    print("\\n[task] Pr ximos pasos:")
     print("   1. Copia .env.example a .env y configura tus variables")
     print("   2. Instala dependencias: pip install -r requirements.txt")
     print("   3. Ejecuta Fase 2: python indexer.py")
