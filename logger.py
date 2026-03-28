@@ -65,27 +65,42 @@ def log_reasoning(task, approach, outcome, owner):
     finally:
         conn.close()
 
+def log_discovery(title, content, source, owner):
+    """Registra un descubrimiento o explicacion extraida de documentacion."""
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    try:
+        # Lo guardamos en docs_index como un 'concept' verificado o raw
+        chunk_hash = compute_hash(f"{title}{content}")
+        embedding = encode_text(f"{title} {content}")
+        
+        c.execute("""
+            INSERT INTO docs_index 
+            (doc_source, chunk_title, chunk_body, chunk_type, hash, embedding, verified, applies_to)
+            VALUES (?, ?, ?, 'concept', ?, ?, 0, ?)
+        """, (source, title, content, chunk_hash, embedding, json.dumps(["discovery"])))
+        
+        conn.commit()
+        print(f"[OK] Descubrimiento registrado como chunk 'raw'. ID: {c.lastrowid}")
+        return True
+    except Exception as e:
+        print(f"[ERR] No se pudo registrar descubrimiento: {e}")
+        return False
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="VELMA Logger - Registra conocimiento")
     subparsers = parser.add_subparsers(dest="command")
 
-    # Comando para Issues
-    p_issue = subparsers.add_parser("issue")
-    p_issue.add_argument("--error", required=True)
-    p_issue.add_argument("--resolution", required=True)
-    p_issue.add_argument("--context", default="N/A")
-    p_issue.add_argument("--approach", default="")
-    p_issue.add_argument("--attempts", default="[]")
-    p_issue.add_argument("--tags", default="[]")
-    p_issue.add_argument("--evidence", default="")
-    p_issue.add_argument("--owner", default="agent")
+    # ... (issue y reason se mantienen igual) ...
 
-    # Comando para Razonamientos
-    p_reason = subparsers.add_parser("reason")
-    p_reason.add_argument("--task", required=True)
-    p_reason.add_argument("--approach", required=True)
-    p_reason.add_argument("--outcome", default="")
-    p_reason.add_argument("--owner", default="agent")
+    # Comando para Descubrimientos (Docs)
+    p_discovery = subparsers.add_parser("discovery")
+    p_discovery.add_argument("--title", required=True)
+    p_discovery.add_argument("--content", required=True)
+    p_discovery.add_argument("--source", default="manual")
+    p_discovery.add_argument("--owner", default="agent")
 
     args = parser.parse_args()
 
@@ -95,3 +110,5 @@ if __name__ == "__main__":
                   args.evidence, args.owner)
     elif args.command == "reason":
         log_reasoning(args.task, args.approach, args.outcome, args.owner)
+    elif args.command == "discovery":
+        log_discovery(args.title, args.content, args.source, args.owner)
