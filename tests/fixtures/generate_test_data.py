@@ -41,7 +41,7 @@ _ISSUE_TEMPLATES = [
         "resolution": "Add policy: CREATE POLICY {table}_read ON {table} FOR SELECT USING (auth.uid() = user_id)",
         "context": "{file}:{line}",
         "approach": "Faltaba política RLS para el rol específico.",
-        "tags": ["supabase", "rls", "auth"],
+        "tags": ["database", "rls", "auth"],
         "outcome": "success",
         "evidence": "test_rls_policy PASSED",
     },
@@ -55,31 +55,31 @@ _ISSUE_TEMPLATES = [
         "evidence": "test_token_refresh PASSED (5/5)",
     },
     {
-        "error": "Aurio balance calculation returns negative value for user {user_id}",
+        "error": "Constraint calculation returns negative value for user {user_id}",
         "resolution": "Add non-negative constraint check before UPDATE and rollback on violation",
         "context": "{file}:{line}",
         "approach": "Race condition entre dos transacciones simultáneas. Constraint + rollback.",
-        "tags": ["aurios", "balance", "race-condition"],
+        "tags": ["integrity", "balance", "race-condition"],
         "outcome": "success",
         "evidence": "test_balance_negative PASSED (10/10 concurrent)",
     },
     {
-        "error": "Foreign key constraint failed on missions.embajador_id",
-        "resolution": "Verify embajador exists before INSERT, wrap in transaction",
+        "error": "Foreign key constraint failed on {table}.user_id",
+        "resolution": "Verify user exists before INSERT, wrap in transaction",
         "context": "{file}:{line}",
-        "approach": "INSERT sin verificar existencia del embajador.",
-        "tags": ["database", "fk", "missions"],
+        "approach": "INSERT sin verificar existencia de la entidad relacionada.",
+        "tags": ["database", "fk", "integrity"],
         "outcome": "success",
-        "evidence": "test_mission_fk PASSED",
+        "evidence": "test_fk_constraint PASSED",
     },
     {
-        "error": "Flask server returns 500 on /api/v1/canjes endpoint",
-        "resolution": "Fix missing null check on embajador.saldo before comparison",
+        "error": "Flask server returns 500 on {endpoint} endpoint",
+        "resolution": "Fix missing null check on object.field before comparison",
         "context": "{file}:{line}",
-        "approach": "saldo podía ser NULL para embajadores recién registrados.",
-        "tags": ["flask", "api", "canjes", "null"],
+        "approach": "campo podía ser NULL para registros recién creados.",
+        "tags": ["flask", "api", "null"],
         "outcome": "success",
-        "evidence": "test_canjes_endpoint PASSED",
+        "evidence": "test_endpoint PASSED",
     },
     {
         "error": "Indexer skips files with unicode characters in path",
@@ -110,15 +110,15 @@ _ISSUE_TEMPLATES = [
     },
 ]
 
-_SERVICES = ["Supabase", "PostgreSQL", "Redis", "S3", "SendGrid"]
-_SERVICE_TAGS = ["supabase", "postgresql", "redis", "s3", "email"]
-_ENDPOINTS = ["/api/v1/canjes", "/api/v1/misiones", "/api/v1/embajadores", "/api/v1/tambus"]
+_SERVICES = ["Database", "Auth", "Redis", "S3", "API"]
+_SERVICE_TAGS = ["database", "auth", "redis", "s3", "api"]
+_ENDPOINTS = ["/api/v1/users", "/api/v1/items", "/api/v1/status", "/api/v1/config"]
 _FILES = [
-    "src/payments.py", "src/auth.py", "src/missions.py",
-    "src/users.py", "search.py", "indexer.py", "merge_knowledge.py",
+    "src/core.py", "src/auth.py", "src/utils.py",
+    "src/api.py", "search.py", "indexer.py", "merge_knowledge.py",
 ]
-_TABLES = ["embajadores", "misiones", "aurios", "canjes", "tambus"]
-_ROLES = ["embajador", "tambu_admin", "anonymous", "service_role"]
+_TABLES = ["users", "items", "logs", "config", "sessions"]
+_ROLES = ["admin", "user", "anonymous", "service"]
 _STATUSES = ["raw", "verified", "verified", "verified", "merged"]  # mayoría verified
 
 

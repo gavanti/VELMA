@@ -20,8 +20,8 @@ Cada sesión de un agente de IA empieza desde cero. Este sistema resuelve eso co
 | Componente | Tecnología | Propósito |
 |------------|------------|-----------|
 | Base de datos | SQLite local | Base personal de cada dev, sin servidor |
-| Full-text search | FTS5 | Búsqueda exacta por palabras clave |
-| Embeddings | all-MiniLM-L6-v2 | Búsqueda semántica (22MB, sin API) |
+| Full-text search | FTS5 | B squeda exacta por palabras clave |
+| Embeddings | paraphrase-multilingual-MiniLM-L12-v2 | B squeda sem ntica (420MB, nativo ES/EN) |
 | Web panel | Flask | Panel para revisar y verificar entradas |
 | Sync | GitHub Actions | Merge automático en cada PR |
 
@@ -183,7 +183,7 @@ raw → verified → merged → archived
 El sistema combina dos señales usando **Reciprocal Rank Fusion**:
 
 1. **FTS5**: Encuentra matches exactos de palabras clave
-2. **Embeddings**: Encuentra matches semánticos (all-MiniLM-L6-v2, 384 dims)
+2. **Embeddings**: Encuentra matches sem nticos (paraphrase-multilingual-MiniLM-L12-v2, 384 dims)
 
 ### Pesos por Tipo de Chunk
 

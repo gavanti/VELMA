@@ -2,6 +2,21 @@ VELMA - Knowledge Base Vectorizado para Agentes
 ================================================
 Changelog — formato: [version] fecha — descripcion
 
+[0.3.0] 2026-03-28 — Mejoras Multiling es y Soporte Ollama
+--------------------------------------------------------------------------------
+
+MEJORAS CORE
+  + Modelo de embeddings: paraphrase-multilingual-MiniLM-L12-v2 (nativo ES/EN)
+  + Soporte Ollama (opcional): enriquecimiento biling e en indexaci n y b squeda
+  + Sanitizaci n FTS5: prevenci n de SQL injection y errores de sintaxis
+  + Compatibilidad Windows: eliminaci n de caracteres Unicode conflictivos en setup
+
+DOCUMENTACI N Y REFACTORING
+  * README.md y CLAUDE.md actualizados con el nuevo stack y protocolo
+  * .env.example incluye configuraci n para Ollama y nuevo modelo
+  * tests/fixtures/generate_test_data.py limpiado de referencias a Chakana
+  * Suite de tests ampliada con pruebas de integraci n multiling e
+
 --------------------------------------------------------------------------------
 [0.2.0] 2026-03-28 — Generalizacion: eliminar referencias de dominio especifico
 --------------------------------------------------------------------------------

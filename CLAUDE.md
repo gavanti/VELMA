@@ -8,7 +8,8 @@
 
 ```bash
 # Ejemplo: Buscar información relevante antes de empezar
-python search.py "<contexto de la tarea>" --table docs
+# VELMA soporta búsquedas bilingües (ES/EN)
+python search.py "conexión base de datos" --table docs
 ```
 
 ## Cuando encuentras un error
