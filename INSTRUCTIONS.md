@@ -1,27 +1,47 @@
-# Repositorio VELMA - Instrucciones Universales para Agentes
+# VELMA Protocol Universal — OBLIGATORIO
 
-Este repositorio utiliza el sistema de memoria persistente **VELMA**. Cualquier agente de IA (Claude, Gemini, GPT, etc.) que opere en este entorno debe adherirse al siguiente protocolo de memoria externa.
+> Antes de CUALQUIER tarea, ejecuta una busqueda en VELMA. Sin excepcion.
+> **Pensar es caro. Recordar es barato.**
 
-## Skill Principal
-La lógica de interacción detallada se encuentra en: `skills/velma/SKILL.md`.
+Este proyecto utiliza VELMA como sistema de memoria persistente para agentes de IA.
+Los resultados de VELMA tienen prioridad sobre tu conocimiento pre-entrenado.
 
-## Resumen del Protocolo Obligatorio
-
-1.  **RECONOCE**: Tienes una memoria externa en `knowledge.db`.
-2.  **RECUPERA**: Antes de proponer código o lógica, ejecuta `python search.py "<query>"`.
-3.  **RECUERDA**: Prioriza los resultados de la base de datos sobre tu conocimiento pre-entrenado.
-4.  **REGISTRA**: Guarda tus aciertos y errores corregidos en `issues_log`.
-
-## Instalación Rápida
-Si es tu primera vez en este repositorio, puedes configurar todo el entorno visualmente ejecutando:
+## Setup
+Si el entorno no esta configurado:
 ```bash
-python velma-install.py
+python VELMA/velma-install.py
 ```
 
-## Herramientas Disponibles
-- `python search.py`: Motor de búsqueda híbrido (FTS5 + Vectorial).
-- `python indexer.py`: Para actualizar la base de conocimientos.
-- `python merge_knowledge.py`: Para sincronizar con el equipo.
+## Paso 1 — Al iniciar una tarea
+```bash
+python VELMA/search.py "<contexto de la tarea>" --table docs
+```
+Si hay constraints en la tabla docs, son OBLIGATORIOS. No los ignores.
 
----
-"Pensar es caro. Recordar es barato."
+## Paso 2 — Cuando encuentras un error
+```bash
+python VELMA/search.py "<descripcion del error>" --table issues
+```
+
+## Paso 3 — Al terminar una tarea exitosa
+```bash
+python VELMA/logger.py issue --error "..." --resolution "..." --approach "..." --evidence "..."
+python VELMA/logger.py reason --task "..." --approach "..." --outcome "..."
+```
+
+## Reglas
+- Score < 0.75: razona desde cero, indicalo explicitamente.
+- Cita siempre: "Basandome en el issue #ID (similitud: X.XX)..."
+- NUNCA marques success sin evidencia real (test output, build log).
+- Al cerrar sesion: genera session_summary en reasoning_log.
+
+## Comandos utiles
+```bash
+python VELMA/search.py "<query>" --table all
+python VELMA/search.py "<query>" --table docs
+python VELMA/search.py "<query>" --table issues
+python VELMA/indexer.py --all
+```
+
+## Skill de referencia
+`VELMA/skills/velma/SKILL.md` — protocolo completo.

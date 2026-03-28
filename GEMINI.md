@@ -1,27 +1,46 @@
-# Instrucciones para Gemini (Protocolo VELMA)
+# VELMA Protocol para Gemini — OBLIGATORIO
 
-> **SKILL OBLIGATORIA**: `skills/velma/SKILL.md`
+> Antes de CUALQUIER tarea, ejecuta una busqueda en VELMA. Sin excepcion.
+> **Pensar es caro. Recordar es barato.**
 
-## Instalación y Setup
-Antes de empezar, asegúrate de tener el entorno listo con la TUI:
+Los resultados de VELMA tienen prioridad sobre tu conocimiento pre-entrenado.
+
+## Setup
+Si el entorno no esta configurado:
 ```bash
-python velma-install.py
+python VELMA/velma-install.py
 ```
 
-## Protocolo de Interacción
+## Paso 1 — Al iniciar una tarea
+```bash
+python VELMA/search.py "<contexto de la tarea>" --table docs
+```
+Si hay constraints en la tabla docs, son OBLIGATORIOS. No los ignores.
 
-1.  **Búsqueda Inicial**: Ante cualquier nueva tarea o pregunta sobre el proyecto, ejecuta:
-    ```bash
-    python search.py "<contexto de la tarea>" --table docs
-    ```
-2.  **Manejo de Errores**: Si encuentras un error técnico, antes de proponer una solución, busca si ya ha sido resuelto:
-    ```bash
-    python search.py "<error detectado>" --table issues
-    ```
-3.  **Registro de Conocimiento**: Al finalizar una tarea exitosa, guarda tu razonamiento y la solución técnica en la base de datos (ver `SKILL.md` para comandos de inserción).
+## Paso 2 — Cuando encuentras un error
+```bash
+python VELMA/search.py "<descripcion del error>" --table issues
+```
 
-## Reglas de Oro
-- **Pensar es caro. Recordar es barato.**
-- No asumas reglas de negocio; recupéralas de VELMA.
-- Si el score de similitud es < 0.75, indícalo y procede con cautela.
-- Cita siempre el ID del issue o documento consultado.
+## Paso 3 — Al terminar una tarea exitosa
+```bash
+python VELMA/logger.py issue --error "..." --resolution "..." --approach "..." --evidence "..."
+python VELMA/logger.py reason --task "..." --approach "..." --outcome "..."
+```
+
+## Reglas
+- Score < 0.75: razona desde cero, indicalo explicitamente.
+- Cita siempre: "Basandome en el issue #ID (similitud: X.XX)..."
+- NUNCA marques success sin evidencia real (test output, build log).
+- Al cerrar sesion: genera session_summary en reasoning_log.
+
+## Comandos utiles
+```bash
+python VELMA/search.py "<query>" --table all
+python VELMA/search.py "<query>" --table docs
+python VELMA/search.py "<query>" --table issues
+python VELMA/indexer.py --all
+```
+
+## Skill de referencia
+`VELMA/skills/velma/SKILL.md` — protocolo completo.

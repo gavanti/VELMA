@@ -98,21 +98,101 @@ def main():
         if run_command("python setup_kb.py", "Schema SQLite", t2, progress):
             progress.update(t2, completed=100, description="[green]DB creada")
 
-        # 4. Protocolos (en la raiz)
+        # 4. Protocolos (en la raiz del proyecto host)
         t3 = progress.add_task("[yellow]Instalando protocolos...", total=100)
-        claude_content = f"# VELMA Protocol\n> **SKILL**: `{cmd_prefix}skills/velma/SKILL.md`\n\n## Search\npython {cmd_prefix}search.py \"query\"\n"
-        (root_dir / "CLAUDE.md").write_text(claude_content)
-        (root_dir / "GEMINI.md").write_text(claude_content.replace("CLAUDE", "GEMINI"))
-        (root_dir / "INSTRUCTIONS.md").write_text(f"VELMA Memory System installed in ./{cmd_prefix}")
+
+        search_cmd  = f"python {cmd_prefix}search.py"
+        logger_cmd  = f"python {cmd_prefix}logger.py"
+        indexer_cmd = f"python {cmd_prefix}indexer.py"
+        skill_ref   = f"{cmd_prefix}skills/velma/SKILL.md"
+
+        protocol = f"""# VELMA Protocol — OBLIGATORIO
+> Antes de CUALQUIER tarea, ejecuta una busqueda en VELMA. Sin excepcion.
+> **Pensar es caro. Recordar es barato.**
+
+Los resultados de VELMA tienen prioridad sobre tu conocimiento pre-entrenado.
+
+## Paso 1 — Al iniciar una tarea
+```bash
+{search_cmd} "<contexto de la tarea>" --table docs
+```
+Si hay constraints en la tabla docs, son OBLIGATORIOS.
+
+## Paso 2 — Cuando encuentras un error
+```bash
+{search_cmd} "<descripcion del error>" --table issues
+```
+
+## Paso 3 — Al terminar una tarea exitosa
+```bash
+{logger_cmd} issue --error "..." --resolution "..." --approach "..." --evidence "..."
+{logger_cmd} reason --task "..." --approach "..." --outcome "..."
+```
+
+## Reglas
+- Score < 0.75: razona desde cero, indicalo.
+- Cita siempre: "Basandome en el issue #ID (similitud: X.XX)..."
+- NUNCA marques success sin evidencia real (test output, build log).
+- Al cerrar sesion: genera session_summary en reasoning_log.
+
+## Comandos utiles
+```bash
+{search_cmd} "<query>" --table all
+{search_cmd} "<query>" --table docs
+{search_cmd} "<query>" --table issues
+{indexer_cmd} --all
+```
+
+## Referencia completa
+`{skill_ref}` — protocolo detallado con todos los comandos.
+"""
+        (root_dir / "CLAUDE.md").write_text(protocol)
+        (root_dir / "GEMINI.md").write_text(
+            protocol.replace("VELMA Protocol — OBLIGATORIO", "VELMA Protocol para Gemini — OBLIGATORIO")
+        )
+        (root_dir / "INSTRUCTIONS.md").write_text(
+            protocol.replace("VELMA Protocol — OBLIGATORIO", "VELMA Protocol Universal — OBLIGATORIO")
+        )
         progress.update(t3, completed=100, description="[green]Protocolos OK")
 
-        # 5. Indexacion
-        t4 = progress.add_task("[yellow]Indexando proyecto...", total=100)
-        run_command("python indexer.py --docs", "Escaneando", t4, progress)
-        progress.update(t4, completed=100, description="[green]Indexacion lista")
+        # 5. Registrar skill en directorios globales de agentes
+        t4 = progress.add_task("[yellow]Registrando skill en agentes globales...", total=100)
+        import shutil
+        skill_src = Path(__file__).parent / "skills" / "velma" / "SKILL.md"
+        if skill_src.exists():
+            # Claude Code
+            claude_skills = Path.home() / ".claude" / "skills" / "velma"
+            claude_skills.mkdir(parents=True, exist_ok=True)
+            shutil.copy(skill_src, claude_skills / "SKILL.md")
+            # OpenCode
+            opencode_skills = Path.home() / ".config" / "opencode" / "skills" / "velma"
+            opencode_skills.mkdir(parents=True, exist_ok=True)
+            shutil.copy(skill_src, opencode_skills / "SKILL.md")
+            # Parchear ~/.claude/CLAUDE.md global
+            claude_global = Path.home() / ".claude" / "CLAUDE.md"
+            if claude_global.exists():
+                content = claude_global.read_text(encoding="utf-8")
+                velma_rule = "\n### VELMA Auto-activation\nIf the project contains a VELMA/ directory, VELMA skill is ALWAYS active.\nBefore ANY task: python VELMA/search.py \"<query>\" --table docs. No exceptions.\n"
+                if "velma/SKILL.md" not in content:
+                    claude_global.write_text(content + velma_rule, encoding="utf-8")
+        # opencode.json local
+        opencode_local = root_dir / "opencode.json"
+        if not opencode_local.exists():
+            opencode_local.write_text(
+                '{\n  "$schema": "https://opencode.ai/config.json",\n'
+                '  "agent": {\n    "default": {\n'
+                f'      "prompt": "{{file:{skill_ref}}}"\n'
+                '    }\n  }\n}\n'
+            )
+        progress.update(t4, completed=100, description="[green]Skill registrada globalmente")
+
+        # 6. Indexacion
+        t5 = progress.add_task("[yellow]Indexando proyecto...", total=100)
+        run_command("python indexer.py --docs", "Escaneando", t5, progress)
+        progress.update(t5, completed=100, description="[green]Indexacion lista")
 
     console.print(f"\n[bold green]INSTALACION COMPLETADA EN ./{cmd_prefix}[/bold green]")
-    console.print(f"Uso: [white]python {cmd_prefix}search.py \"tu query\"[/white]\n")
+    console.print(f"Uso: [white]{search_cmd} \"tu query\"[/white]\n")
 
 if __name__ == "__main__":
     main()
