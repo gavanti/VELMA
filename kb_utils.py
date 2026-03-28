@@ -6,6 +6,7 @@ Funciones auxiliares para el sistema de knowledge base
 import hashlib
 import json
 import numpy as np
+from pathlib import Path
 from datetime import datetime, timedelta
 
 def get_db_path():
