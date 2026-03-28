@@ -11,6 +11,13 @@ Si el entorno no esta configurado:
 python VELMA/velma-install.py
 ```
 
+## Herramientas MCP (preferido sobre CLI)
+Si el MCP está disponible, usá las tools directamente:
+- `velma_search(query, table)` en vez de `python search.py`
+- `velma_log_issue(...)` en vez de `python logger.py issue`
+- `velma_log_reason(...)` en vez de `python logger.py reason`
+El CLI sigue siendo el fallback cuando el MCP no está configurado.
+
 ## Paso 1 — Al iniciar una tarea
 ```bash
 python VELMA/search.py "<contexto de la tarea>" --table docs

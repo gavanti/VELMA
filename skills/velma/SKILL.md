@@ -12,7 +12,10 @@ El agente **DEBE** ejecutar este protocolo en los siguientes eventos:
 
 ## 🔍 Herramientas de Búsqueda (Retrieval)
 
-### Búsqueda en Documentación y Reglas
+### MCP Tools (Recomendado)
+- `velma_search(query, table)`
+
+### Búsqueda en Documentación y Reglas (CLI Fallback)
 Usa esto para entender el "QUÉ" y el "CÓMO" del proyecto actual.
 ```bash
 python search.py "<contexto o tarea>" --table docs
@@ -26,16 +29,20 @@ python search.py "<descripción del error>" --table issues
 
 ## 🛠️ Herramientas de Escritura (Memory Storage)
 
-### Indexar nueva documentación
+### MCP Tools (Recomendado)
+- `velma_log_issue(error, resolution, approach, evidence, context)`
+- `velma_log_reason(task, approach, outcome)`
+- `velma_log_discovery(title, content, source)`
+
+### Indexar nueva documentación (CLI)
 Si creas un archivo `.md` con nuevas reglas, debes indexarlo inmediatamente.
 ```bash
 python indexer.py --docs --docs-dir docs/
 ```
 
-### Registrar un nuevo Issue resuelto
-Usa el script de seed o inserción manual en SQLite para guardar una solución verificada.
-```python
-# Insertar en issues_log con outcome='success' y evidencia real.
+### Registrar un nuevo Issue resuelto (CLI Fallback)
+```bash
+python VELMA/logger.py issue --error "..." --resolution "..." --approach "..." --evidence "..."
 ```
 
 ## 📋 Reglas de Actuación para el Agente
