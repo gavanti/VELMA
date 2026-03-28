@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GAVANTI - Knowledge Base Setup (Fase 1)
+VELMA - Knowledge Base Setup (Fase 1)
 Crea knowledge.db con todas las tablas, FTS5, y prepara para embeddings
 """
 
@@ -382,7 +382,7 @@ def create_database():
 
 def create_config_file():
     """Crea archivo de configuración .env.example"""
-    config_content = """# GAVANTI Knowledge Base Configuration
+    config_content = """# VELMA Knowledge Base Configuration
 
 # Base de datos
 DB_PATH=knowledge.db
@@ -408,7 +408,7 @@ REPO_NAME=
 
 # Configuración del dev
 DEV_NAME=developer
-PROJECT_NAME=chakana
+PROJECT_NAME=my_project
 """
     
     with open(".env.example", "w") as f:
@@ -443,7 +443,7 @@ flask>=2.3.0
 def create_utils_module():
     """Crea módulo de utilidades para el knowledge base"""
     utils_code = '''"""
-GAVANTI - Knowledge Base Utilities
+VELMA - Knowledge Base Utilities
 Funciones auxiliares para el sistema de knowledge base
 """
 
@@ -595,7 +595,7 @@ def verify_setup():
 def main():
     """Función principal de setup"""
     print("="*60)
-    print("  GAVANTI - Knowledge Base Setup (Fase 1)")
+    print("  VELMA - Knowledge Base Setup (Fase 1)")
     print("  Sistema de Memoria Persistente para Agentes de IA")
     print("="*60)
     print()

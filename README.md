@@ -1,19 +1,19 @@
-# GAVANTI - Knowledge Base Persistente para Agentes de IA
+# VELMA - Knowledge Base Persistente para Agentes de IA
 
-Sistema de memoria persistente para agentes de IA del equipo RepoVG. Convierte razonamiento en recuperación, eliminando la repetición de errores y anclando al agente en las reglas de negocio reales.
+Sistema de memoria persistente para agentes de IA. Convierte razonamiento en recuperación, eliminando la repetición de errores y anclando al agente en las reglas de negocio reales de tu proyecto.
 
 > **Principio clave**: *Pensar es caro. Recordar es barato.*
 
-## 🎯 Propósito
+## Propósito
 
-Nuestro equipo de 5 desarrolladores usa agentes de IA en el flujo diario. El problema: cada sesión empieza desde cero. Este sistema resuelve eso con una base de conocimiento persistente que el agente consulta antes de razonar.
+Cada sesión de un agente de IA empieza desde cero. Este sistema resuelve eso con una base de conocimiento persistente que el agente consulta antes de razonar.
 
 **Beneficios:**
 - Menos tokens gastados por sesión
 - Cero repetición de errores ya resueltos
-- Ancla al agente en las reglas de negocio reales (Chakana, RepoVG)
+- Ancla al agente en las reglas de negocio reales de tu proyecto
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 ### Stack Tecnológico
 
@@ -36,7 +36,7 @@ Nuestro equipo de 5 desarrolladores usa agentes de IA en el flujo diario. El pro
 | `reasoning_log` | Local + shared | Todo el equipo |
 | `docs_index` | Local + shared | Todo el equipo |
 
-## 📊 Schema de la Base de Datos
+## Schema de la Base de Datos
 
 ### `issues_log` - Errores y Resoluciones
 
@@ -45,8 +45,8 @@ CREATE TABLE issues_log (
     id INTEGER PRIMARY KEY,
     error TEXT NOT NULL,           -- Descripción del error
     resolution TEXT,               -- Cómo se resolvió
-    context TEXT,                  -- Dónde ocurrió
-    approach TEXT,                 -- Razonamiento detrás
+    context TEXT,                  -- Dónde ocurrió (archivo:función)
+    approach TEXT,                 -- Razonamiento detrás de la solución
     attempts TEXT,                 -- JSON: intentos fallidos
     tags TEXT,                     -- JSON: etiquetas
     outcome TEXT,                  -- unverified|success|failed|human_confirmed
@@ -54,11 +54,9 @@ CREATE TABLE issues_log (
     status TEXT,                   -- raw → verified → merged → archived
     fingerprint TEXT UNIQUE,       -- Hash MD5 para deduplicar
     embedding BLOB,                -- Vector de 384 dimensiones
-    verified_by TEXT,              -- Dev que aprobó
-    shared_id INTEGER,             -- ID en shared si fue mergeada
-    owner TEXT,                    -- Dev que creó la entrada
+    verified_by TEXT,
+    owner TEXT,
     created_at DATETIME,
-    verified_at DATETIME,
     expires_at DATETIME            -- Revisión obligatoria (90 días)
 );
 ```
@@ -72,39 +70,43 @@ CREATE TABLE docs_index (
     chunk_title TEXT,              -- Título del concepto
     chunk_body TEXT,               -- Contenido completo
     chunk_type TEXT,               -- constraint|rule|procedure|concept|example
-    order_in_doc INTEGER,          -- Posición en el documento
+    order_in_doc INTEGER,
     embedding BLOB,                -- Vector para búsqueda semántica
-    hash TEXT,                     -- Hash del doc
-    verified BOOLEAN,              -- Solo verified entra al shared
-    applies_to TEXT,               -- JSON: proyectos
+    hash TEXT,
+    verified BOOLEAN,
+    applies_to TEXT,               -- JSON: proyectos a los que aplica
     updated_at DATETIME
 );
 ```
 
-## 🚀 Instalación
+## Instalación
 
 ```bash
-# 1. Clonar o copiar el proyecto
-cd gavanti-kb
+# 1. Clonar el repositorio
+git clone <url> velma-kb && cd velma-kb
 
-# 2. Ejecutar setup (Fase 1)
-python setup_kb.py
-
-# 3. Instalar dependencias
+# 2. Instalar dependencias
 pip install -r requirements.txt
 
-# 4. Copiar configuración
+# 3. Ejecutar setup (crea knowledge.db con el schema completo)
+python setup_kb.py
+
+# 4. Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tus variables
+# Editar .env: PROJECT_NAME, DEV_NAME, etc.
 
-# 5. Indexar proyecto (Fase 2)
-python indexer.py --all
+# 5. Agregar documentación de tu proyecto a docs/
+# (archivos .md con reglas de negocio, constraints, procedimientos)
+python indexer.py --docs --docs-dir docs/
 
-# 6. Iniciar panel web (Fase 3)
+# 6. Indexar código fuente (opcional)
+python indexer.py --files
+
+# 7. Iniciar panel web
 python search.py --web
 ```
 
-## 📖 Uso
+## Uso
 
 ### Búsqueda desde CLI
 
@@ -113,42 +115,39 @@ python search.py --web
 python search.py "error de conexión"
 
 # Buscar solo en documentación
-python search.py "valor del Aurio" --table docs
+python search.py "reglas de negocio" --table docs
 
 # Buscar solo en issues
-python search.py "Supabase RLS" --table issues
+python search.py "timeout en API" --table issues
 
-# Output en JSON
+# Output en JSON (para integración con agentes)
 python search.py "autenticación" --json
 ```
 
 ### Panel Web
 
 ```bash
-# Iniciar servidor
 python search.py --web --port 5000
-
-# Abrir en navegador
-open http://localhost:5000
+# Abrir http://localhost:5000
 ```
 
 ### Indexación
 
 ```bash
-# Indexar todo
+# Indexar todo el proyecto
 python indexer.py --all
 
-# Indexar solo archivos
+# Solo archivos de código (.py, .js, .ts)
 python indexer.py --files
 
-# Indexar solo documentación
+# Solo documentación (.md)
 python indexer.py --docs --docs-dir docs/
 
-# Indexar archivo específico
-python indexer.py --files --target src/payments.py
+# Poblar desde JSON externo (generado por agente o script)
+python tests/seed_db.py datos.json --db knowledge.db
 ```
 
-### Merge (Sincronización)
+### Merge (Sincronización entre devs)
 
 ```bash
 # Simular merge (dry-run)
@@ -164,7 +163,7 @@ python merge_knowledge.py --conflicts
 python merge_knowledge.py --resolve 123 --resolution "Usar versión A"
 ```
 
-## 🔄 Ciclo de Vida de una Entrada
+## Ciclo de Vida de una Entrada
 
 ```
 raw → verified → merged → archived
@@ -175,50 +174,83 @@ raw → verified → merged → archived
 | `raw` | Agente escribió sin revisión. Otros agentes NO la usan. |
 | `verified` | Un dev la revisó y aprobó. Lista para merge. |
 | `merged` | Incluida en el shared. Referencia al shared_id. |
-| `archived` | Obsoleta. Solo humano puede archivar. |
+| `archived` | Obsoleta. Solo un humano puede archivar. |
 
-**Regla de oro**: La única operación destructiva permitida es `archived`, y solo la ejecuta un humano.
+**Regla de oro**: La única operación destructiva es `archived`, y solo la ejecuta un humano.
 
-## 🔍 Búsqueda Híbrida (RRF)
+## Búsqueda Híbrida (RRF)
 
 El sistema combina dos señales usando **Reciprocal Rank Fusion**:
 
 1. **FTS5**: Encuentra matches exactos de palabras clave
-2. **Embeddings**: Encuentra matches semánticos por similitud
+2. **Embeddings**: Encuentra matches semánticos (all-MiniLM-L6-v2, 384 dims)
 
 ### Pesos por Tipo de Chunk
 
 | Tipo | Peso | Uso |
 |------|------|-----|
-| `constraint` | 10 | Reglas duras ("el Aurio vale exactamente $0.01") |
+| `constraint` | 10 | Reglas duras, nunca ignoradas |
 | `rule` | 8 | Políticas de negocio |
 | `procedure` | 7 | Cómo hacer algo |
 | `concept` | 5 | Definiciones |
 | `example` | 3 | Ilustraciones |
 
-## 🛡️ Mecanismos Anti-Alucinación
+## Anti-Alucinación
 
-1. **Score de confianza mínimo**: Si similitud < 0.75, el agente no usa el resultado
-2. **Solo entradas verified**: El agente ignora `raw` y `archived`
+1. **Score mínimo**: Si similitud < 0.75, el agente razona desde cero
+2. **Solo verified**: El agente ignora entradas `raw` y `archived`
 3. **Citar fuente**: Cada uso del KB debe indicar ID y score
-4. **Expiración automática**: 90 días por defecto
-5. **Constraints sobre todo**: Peso 10, nunca ignorados
+4. **Expiración**: 90 días por defecto, configurable
+5. **Constraints primero**: Peso 10, nunca ignoradas
 
-## 📝 Para el Agente (CLAUDE.md)
+## Tests
 
-Ver archivo `CLAUDE.md` para el protocolo completo que debe seguir el agente:
+```bash
+# Suite completa (192 tests + agente económico)
+python run_all_tests.py
 
-- Buscar antes de razonar
-- Registrar cada intento fallido
-- Solo marcar success con evidencia real
-- Generar session_summary al cerrar
+# Solo tests unitarios (rápido, ~0.4s)
+python run_all_tests.py --fast
 
-## 🔧 GitHub Action
+# Solo el agente económico batch
+python run_all_tests.py --agent-only --db knowledge.db
 
-El merge automático se ejecuta en cada PR mergeado:
+# Con coverage
+python run_all_tests.py --coverage
+```
+
+## Estructura del Proyecto
+
+```
+velma-kb/
+├── setup_kb.py              # Fase 1: Setup inicial (crea DB)
+├── indexer.py               # Fase 2: Indexación de archivos y docs
+├── search.py                # Fase 3: Busqueda hibrida + panel web
+├── merge_knowledge.py       # Fase 4: Merge y deduplicacion
+├── kb_utils.py              # Utilidades: hash, embeddings, similarity
+├── run_all_tests.py         # Runner de tests
+├── requirements.txt         # Dependencias de produccion
+├── requirements-test.txt    # Dependencias de testing
+├── CLAUDE.md                # Protocolo para agentes de IA
+├── .env.example             # Variables de entorno (template)
+├── docs/                    # Tus documentos .md (reglas, constraints)
+├── templates/               # Templates del panel web Flask
+├── tests/
+│   ├── unit/                # Tests unitarios (hash, FTS5, utils)
+│   ├── integration/         # Tests de integracion (indexer, search, merge)
+│   ├── fixtures/            # Generador de datos sinteticos
+│   ├── agent_tester.py      # Agente economico batch
+│   └── seed_db.py           # Poblar DB desde JSON externo
+└── .github/
+    └── workflows/
+        └── merge-knowledge.yml
+```
+
+## GitHub Action
+
+El merge automático corre en cada PR mergeado a `main` o `develop`:
 
 ```yaml
-# .github/workflows/merge-knowledge.yml
 on:
   pull_request:
     types: [closed]
@@ -230,41 +262,9 @@ on:
 | Tipo | Detección | Acción |
 |------|-----------|--------|
 | Exacto | Hash MD5 idéntico | Descarta silenciosamente |
-| Semántico (>0.92) | Similitud vectorial | Enriquece entrada existente |
+| Semantico (>0.92) | Similitud vectorial | Enriquece entrada existente |
 | Conflicto (0.85-0.92) | Similitud media | Marca `needs_review` |
 
-## 📁 Estructura del Proyecto
+## Licencia
 
-```
-gavanti-kb/
-├── setup_kb.py              # Fase 1: Setup inicial
-├── indexer.py               # Fase 2: Indexación
-├── search.py                # Fase 3: Búsqueda + panel web
-├── merge_knowledge.py       # Fase 4: Merge y sync
-├── kb_utils.py              # Utilidades compartidas
-├── CLAUDE.md                # Protocolo para agentes
-├── requirements.txt         # Dependencias
-├── .env.example             # Configuración de ejemplo
-├── knowledge.db             # Base de datos local (gitignored)
-├── shared_knowledge.db      # Base compartida (versionada)
-├── templates/               # Templates del panel web
-│   ├── base.html
-│   ├── index.html
-│   ├── search.html
-│   └── issues.html
-└── .github/
-    └── workflows/
-        └── merge-knowledge.yml
-```
-
-## 🤝 Contribución
-
-1. Trabaja en tu `knowledge.db` local
-2. Verifica las entradas importantes (`status = 'verified'`)
-3. Haz PR
-4. El GitHub Action mergea automáticamente
-5. El equipo hace `git pull` y obtiene el nuevo conocimiento
-
-## 📄 Licencia
-
-Confidencial - Equipo RepoVG - Marzo 2026
+MIT

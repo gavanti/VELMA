@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}GAVANTI Knowledge Base{% endblock %}</title>
+    <title>{% block title %}{{ project_name }} Knowledge Base{% endblock %}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -175,7 +175,7 @@
 <body>
     <header>
         <div class="container">
-            <h1>🔷 GAVANTI Knowledge Base</h1>
+            <h1>🔷 {{ project_name }} Knowledge Base</h1>
             <p>Sistema de Memoria Persistente para Agentes de IA</p>
         </div>
     </header>

@@ -3,6 +3,39 @@ VELMA - Knowledge Base Vectorizado para Agentes
 Changelog — formato: [version] fecha — descripcion
 
 --------------------------------------------------------------------------------
+[0.2.0] 2026-03-28 — Generalizacion: eliminar referencias de dominio especifico
+--------------------------------------------------------------------------------
+
+ELIMINADOS
+  - src/payments.py              — logica de negocio especifica de Chakana
+  - docs/chakana-reglas.md       — documentacion de dominio Chakana
+  - tests/seed_data.json         — datos de prueba especificos de Chakana
+
+REFACTORIZADOS
+  * Todos los banners GAVANTI -> VELMA en setup_kb, indexer, search, merge, kb_utils
+  * templates/base.html          — titulo dinamico via {{ project_name }} (Jinja)
+  * search.py                    — context_processor inyecta PROJECT_NAME desde .env
+  * indexer.py L524              — applies_to default: ['chakana','repovg'] ->
+                                   [os.getenv('PROJECT_NAME', 'default')]
+  * .env.example                 — PROJECT_NAME=chakana -> PROJECT_NAME=my_project,
+                                   SUPABASE_* reemplazados por SHARED_DB_PATH generico
+  * CLAUDE.md                    — tabla de reglas Chakana -> placeholder generico
+                                   con instrucciones para personalizar
+  * README.md                    — referencias a Chakana/RepoVG -> genericas,
+                                   licencia Confidencial -> MIT
+  * tests/fixtures/generate_test_data.py — _DOC_CHUNKS: chunks especificos de
+                                   Chakana (Aurio/Embajador/Tambu) reemplazados
+                                   por chunks genericos de VELMA (protocolo de agente)
+  * tests/agent_tester.py        — SCENARIOS: escenarios especificos de Chakana
+                                   reemplazados por escenarios genericos reutilizables
+  * .github/workflows/merge-knowledge.yml — banner GAVANTI -> VELMA
+
+RESULTADO
+  El repositorio puede instalarse en cualquier proyecto sin referencias a Chakana.
+  Para personalizar: agregar docs .md en docs/ con las reglas del nuevo proyecto
+  y ejecutar: python indexer.py --docs --docs-dir docs/
+
+--------------------------------------------------------------------------------
 [0.1.0] 2026-03-28 — Initial release: sistema completo con tests y embeddings
 --------------------------------------------------------------------------------
 

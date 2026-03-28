@@ -1,4 +1,4 @@
-# GAVANTI Knowledge Base - GitHub Action
+# VELMA Knowledge Base - GitHub Action
 # Ejecuta merge automático de conocimiento verificado en cada PR
 
 name: Merge Knowledge Base

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GAVANTI - Knowledge Base Indexer (Fase 2)
+VELMA - Knowledge Base Indexer (Fase 2)
 Indexa archivos del proyecto por hash, genera summaries, indexa documentación .md por chunks
 """
 
@@ -521,7 +521,7 @@ class KnowledgeIndexer:
                     chunk['order'],
                     chunk_hash,
                     0,  # No verificado por defecto
-                    format_json_field(applies_to or ['chakana', 'repovg']),
+                    format_json_field(applies_to or [os.getenv('PROJECT_NAME', 'default')]),
                     datetime.now().isoformat(),
                     chunk_emb
                 ))
@@ -571,7 +571,7 @@ class KnowledgeIndexer:
 def main():
     """Función principal del indexer"""
     parser = argparse.ArgumentParser(
-        description='GAVANTI Knowledge Base Indexer - Indexa archivos y documentación'
+        description='VELMA Knowledge Base Indexer - Indexa archivos y documentación'
     )
     parser.add_argument(
         '--project', '-p',
@@ -607,7 +607,7 @@ def main():
     args = parser.parse_args()
     
     print("="*60)
-    print("  GAVANTI - Knowledge Base Indexer (Fase 2)")
+    print("  VELMA - Knowledge Base Indexer (Fase 2)")
     print("  Indexación de archivos y documentación")
     print("="*60)
     print()

@@ -1,5 +1,5 @@
 """
-GAVANTI - Knowledge Base Utilities
+VELMA - Knowledge Base Utilities
 Funciones auxiliares para el sistema de knowledge base
 """
 

@@ -1,4 +1,4 @@
-# GAVANTI Knowledge Base - Protocolo para Agentes
+# VELMA Knowledge Base - Protocolo para Agentes
 
 ## Antes de empezar cualquier tarea
 
@@ -8,7 +8,7 @@
 
 ```bash
 # Ejemplo: Buscar información relevante antes de empezar
-python search.py "autenticación Supabase" --table docs
+python search.py "<contexto de la tarea>" --table docs
 ```
 
 ## Cuando encuentras un error
@@ -29,7 +29,6 @@ python search.py "autenticación Supabase" --table docs
 ```python
 import sqlite3
 import json
-from datetime import datetime
 
 conn = sqlite3.connect('knowledge.db')
 cursor = conn.cursor()
@@ -38,11 +37,11 @@ cursor.execute("""
     INSERT INTO issues_log (error, context, attempts, status, owner, outcome)
     VALUES (?, ?, ?, 'raw', 'claude', 'unverified')
 """, (
-    "Error: Connection refused to Supabase",
-    "payments.py:process_redeem()",
+    "Error: <descripción del error>",
+    "<archivo>:<función>()",
     json.dumps([
-        "Intento 1: Verificar credenciales - falló",
-        "Intento 2: Revisar URL de conexión - falló"
+        "Intento 1: <qué se intentó> - falló",
+        "Intento 2: <qué se intentó> - falló"
     ])
 ))
 
@@ -55,17 +54,17 @@ conn.close()
 ```python
 # Actualizar el issue con la resolución
 cursor.execute("""
-    UPDATE issues_log 
-    SET resolution = ?, 
+    UPDATE issues_log
+    SET resolution = ?,
         approach = ?,
         outcome = 'success',
         evidence = ?,
         status = 'verified'
     WHERE id = ?
 """, (
-    "Agregar retry con backoff exponencial",
-    "El error ocurría por timeout en conexiones lentas. Implementé retry con backoff.",
-    "Test: test_payments_retry PASSED (3/3)",
+    "<descripción de la solución>",
+    "<razonamiento: por qué ocurrió y por qué esta solución funciona>",
+    "Test: <nombre_del_test> PASSED (N/N)",
     issue_id
 ))
 ```
@@ -81,7 +80,7 @@ result = cursor.fetchone()
 if result:
     stored_hash = result[0]
     current_hash = compute_file_hash(open(file_path, 'rb').read())
-    
+
     if stored_hash == current_hash:
         # Usar el summary guardado — no releas el archivo
         cursor.execute("SELECT summary FROM files_index WHERE path = ?", (file_path,))
@@ -102,25 +101,28 @@ cursor.execute("""
     INSERT INTO reasoning_log (task, approach, outcome, status, owner)
     VALUES (?, ?, ?, 'raw', 'claude')
 """, (
-    "Implementar sistema de canje de Aurios",
+    "<descripción de la tarea completada>",
     """
-    1. Analicé los requisitos de negocio (constraint: Aurio = $0.01)
-    2. Diseñé el modelo de datos para transacciones
-    3. Implementé validaciones de saldo mínimo
-    4. Agregué tests de integración
-    5. Verifiqué que todos los tests pasan
+    1. <paso 1 que se realizó>
+    2. <paso 2 que se realizó>
+    3. <resultado final>
     """,
-    "Sistema implementado y testeado. 5 tests pasando."
+    "<outcome: qué se logró y con qué evidencia>"
 ))
 ```
 
-## Reglas de negocio críticas (Chakana)
+## Reglas de negocio críticas del proyecto
+
+<!-- PERSONALIZAR: Agrega aquí las constraints específicas de tu proyecto.
+     Usa el formato de tabla. El peso indica prioridad (10 = máximo). -->
 
 | Constraint | Descripción | Peso |
 |------------|-------------|------|
-| Valor del Aurio | El Aurio vale exactamente $0.01 USD. No aplicar márgenes. | 10 |
-| Mínimo de canje | Los Embajadores necesitan mínimo 1000 Aurios para canjear | 9 |
-| Acumulación | Los Aurios se acumulan por Misiones completadas | 8 |
+| _(agrega tus reglas aquí)_ | _(descripción)_ | _(1-10)_ |
+
+> Las reglas de esta tabla se cargan como docs de tipo `constraint` en docs_index
+> via `python indexer.py --docs`. Agrégalas a tu archivo de documentación
+> y ejecuta el indexer para que el agente las encuentre automáticamente.
 
 ## Score de confianza mínimo
 
@@ -131,8 +133,8 @@ Si la similitud del resultado recuperado es menor a **0.75**, el agente no lo us
 Cada vez que uses una entrada del knowledge base, indica el ID y el score de similitud:
 
 ```
-Basándome en el issue #42 (similitud: 0.89), el error de conexión 
-a Supabase se resuelve agregando retry con backoff...
+Basándome en el issue #42 (similitud: 0.89), el error de conexión
+se resuelve agregando retry con backoff...
 ```
 
 ## Expiración automática
@@ -157,9 +159,15 @@ python search.py --web
 # Indexar archivos del proyecto
 python indexer.py --all
 
+# Indexar solo documentación
+python indexer.py --docs --docs-dir docs/
+
 # Mergear conocimiento verificado (dry-run)
 python merge_knowledge.py --dry-run
 
 # Mergear conocimiento verificado (live)
 python merge_knowledge.py
+
+# Poblar DB desde JSON externo (ej: datos generados por otro agente)
+python tests/seed_db.py <archivo.json> --db knowledge.db
 ```

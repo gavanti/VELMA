@@ -217,106 +217,99 @@ def generate_exact_duplicate_issues(base_issues: List[Dict], k: int = 5) -> List
 # ============================================================
 
 _DOC_CHUNKS = [
-    # Constraints
+    # Constraints (genéricos de VELMA)
     {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Constraint: Valor del Aurio",
-        "chunk_body": "El Aurio vale exactamente $0.01 USD. Nunca aplicar márgenes ni conversiones adicionales. Esta regla es absoluta y obligatoria.",
-        "chunk_type": "constraint",
-        "verified": 1,
-    },
-    {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Constraint: Mínimo de canje",
-        "chunk_body": "Los Embajadores necesitan un saldo mínimo de 1000 Aurios para iniciar un canje. Nunca procesar canjes por debajo de este umbral.",
-        "chunk_type": "constraint",
-        "verified": 1,
-    },
-    {
-        "doc_source": "chakana-reglas.md",
+        "doc_source": "project-rules.md",
         "chunk_title": "Constraint: Solo humano puede archivar",
-        "chunk_body": "La operación 'archived' en issues_log solo la puede ejecutar un humano. El agente no debe marcar entradas como archivadas de forma autónoma. Siempre requerir confirmación humana.",
+        "chunk_body": "La operacion archived en issues_log solo la puede ejecutar un humano. El agente no debe marcar entradas como archivadas de forma autonoma. Siempre requerir confirmacion humana.",
+        "chunk_type": "constraint",
+        "verified": 1,
+    },
+    {
+        "doc_source": "project-rules.md",
+        "chunk_title": "Constraint: Evidencia obligatoria para success",
+        "chunk_body": "Solo marcar outcome=success cuando hay evidencia verificable. NUNCA marcar success porque el codigo se ve correcto sin evidencia real como test output o build log.",
+        "chunk_type": "constraint",
+        "verified": 1,
+    },
+    {
+        "doc_source": "project-rules.md",
+        "chunk_title": "Constraint: No usar resultados con baja confianza",
+        "chunk_body": "Si la similitud del resultado recuperado del knowledge base es menor a 0.75, el agente no lo usa como contexto. Debe razonar desde cero para evitar alucinaciones.",
         "chunk_type": "constraint",
         "verified": 1,
     },
     # Rules
     {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Regla de Acumulación de Aurios",
-        "chunk_body": "Los Embajadores acumulan Aurios por cada Misión completada exitosamente. Misión básica: 100 Aurios. Misión premium: 500 Aurios. Misión especial: 1000 Aurios.",
+        "doc_source": "project-rules.md",
+        "chunk_title": "Regla: Score de confianza minimo",
+        "chunk_body": "El score minimo de confianza para usar un resultado del KB es 0.75. Por debajo de ese threshold, razonar desde cero. Documentar si se usa conocimiento con score bajo.",
         "chunk_type": "rule",
         "verified": 1,
     },
     {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Regla: Score de confianza mínimo",
-        "chunk_body": "Si la similitud del resultado recuperado del knowledge base es menor a 0.75, el agente no lo usa como contexto. Debe razonar desde cero.",
-        "chunk_type": "rule",
-        "verified": 1,
-    },
-    {
-        "doc_source": "chakana-reglas.md",
+        "doc_source": "project-rules.md",
         "chunk_title": "Regla: Citar fuente del knowledge base",
-        "chunk_body": "Cada vez que el agente usa una entrada del knowledge base, debe indicar el ID y el score de similitud. Ejemplo: Basándome en el issue #42 (similitud: 0.89).",
+        "chunk_body": "Cada vez que el agente usa una entrada del knowledge base, debe indicar el ID y el score de similitud. Ejemplo: Basandome en el issue #42 (similitud: 0.89).",
+        "chunk_type": "rule",
+        "verified": 1,
+    },
+    {
+        "doc_source": "project-rules.md",
+        "chunk_title": "Regla: Buscar antes de razonar",
+        "chunk_body": "Antes de intentar resolver un problema, buscar en el knowledge base si existe un issue similar ya resuelto. Esto evita repetir trabajo y reduce tokens consumidos.",
         "chunk_type": "rule",
         "verified": 1,
     },
     # Procedures
     {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Procedimiento: Canje de Aurios",
-        "chunk_body": "Para canjear Aurios: 1. Verificar saldo mínimo de 1000 Aurios. 2. Solicitar canje mediante /api/v1/canjes. 3. Validar identidad del Embajador. 4. Procesar transferencia en máximo 48 horas.",
-        "chunk_type": "procedure",
-        "verified": 1,
-    },
-    {
         "doc_source": "CLAUDE.md",
         "chunk_title": "Procedimiento: Registrar issue en knowledge base",
-        "chunk_body": "Al encontrar un error: 1. Buscar en issues_log antes de resolver. 2. Registrar cada intento fallido en attempts[]. 3. Solo marcar outcome='success' con evidencia real (test output). 4. NUNCA marcar success porque el código se ve correcto.",
+        "chunk_body": "Al encontrar un error: 1. Buscar en issues_log antes de resolver. 2. Registrar cada intento fallido en attempts[]. 3. Solo marcar outcome=success con evidencia real. 4. Nunca marcar success sin evidencia.",
         "chunk_type": "procedure",
         "verified": 1,
     },
     {
         "doc_source": "CLAUDE.md",
         "chunk_title": "Procedimiento: Session summary al cerrar",
-        "chunk_body": "Al cerrar la sesión, generar session_summary en reasoning_log. Esto NO es opcional. Incluir: task, approach, outcome, status='raw', owner='claude'.",
+        "chunk_body": "Al cerrar la sesion, generar session_summary en reasoning_log. Esto NO es opcional. Incluir: task, approach, outcome, status=raw, owner=claude.",
+        "chunk_type": "procedure",
+        "verified": 1,
+    },
+    {
+        "doc_source": "CLAUDE.md",
+        "chunk_title": "Procedimiento: Verificar hash antes de leer archivo",
+        "chunk_body": "Antes de leer un archivo, verificar su hash en files_index. Si el hash no cambio, usar el summary guardado. Esto evita re-leer archivos sin cambios y reduce tokens.",
         "chunk_type": "procedure",
         "verified": 1,
     },
     # Concepts
     {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Concepto: Aurio",
-        "chunk_body": "El Aurio es la unidad de valor de la plataforma Chakana. Es una moneda virtual que los Embajadores acumulan completando Misiones y canjeando en Tambus.",
+        "doc_source": "CLAUDE.md",
+        "chunk_title": "Concepto: Knowledge Base VELMA",
+        "chunk_body": "VELMA es un sistema de memoria persistente para agentes de IA. Almacena issues resueltos, documentacion, constraints y razonamiento entre sesiones usando SQLite con FTS5 y embeddings.",
         "chunk_type": "concept",
         "verified": 1,
     },
     {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Concepto: Embajador",
-        "chunk_body": "Los Embajadores son usuarios que acumulan Aurios por completar Misiones en la plataforma Chakana.",
-        "chunk_type": "concept",
-        "verified": 0,
-    },
-    {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Concepto: Tambu",
-        "chunk_body": "Un Tambu es un comercio aliado en la plataforma Chakana. Los Tambus ofrecen beneficios exclusivos a los Embajadores.",
+        "doc_source": "CLAUDE.md",
+        "chunk_title": "Concepto: Ciclo de vida raw-verified-merged-archived",
+        "chunk_body": "Las entradas en VELMA siguen el ciclo: raw (sin revisar), verified (aprobada por humano), merged (en shared), archived (obsoleta). Solo humanos archivan.",
         "chunk_type": "concept",
         "verified": 1,
     },
     # Examples
     {
-        "doc_source": "chakana-reglas.md",
-        "chunk_title": "Ejemplo: Flujo completo de Misión",
-        "chunk_body": "Ejemplo de cómo un Embajador completa una Misión: 1. Embajador Juan recibe notificación. 2. Completa la Misión. 3. Sube evidencia. 4. Sistema valida. 5. Juan recibe 100 Aurios.",
+        "doc_source": "CLAUDE.md",
+        "chunk_title": "Ejemplo: Registrar issue resuelto",
+        "chunk_body": "Ejemplo de registro correcto: INSERT INTO issues_log con outcome=success y evidence=test PASSED (3/3). La evidencia es obligatoria para marcar success.",
         "chunk_type": "example",
         "verified": 1,
     },
     {
         "doc_source": "CLAUDE.md",
-        "chunk_title": "Ejemplo: Registrar issue resuelto",
-        "chunk_body": "Ejemplo de registro correcto: cursor.execute(INSERT INTO issues_log ... outcome='success', evidence='test PASSED (3/3)'). La evidencia es obligatoria para marcar success.",
+        "chunk_title": "Ejemplo: Citar fuente del KB",
+        "chunk_body": "Ejemplo de cita correcta: Basandome en el issue #15 (similitud: 0.87), el error de conexion se resuelve agregando retry con backoff exponencial.",
         "chunk_type": "example",
         "verified": 1,
     },
@@ -329,7 +322,7 @@ def generate_docs() -> List[Dict]:
     for i, chunk in enumerate(_DOC_CHUNKS):
         doc = chunk.copy()
         doc["order_in_doc"] = i
-        doc["applies_to"] = json.dumps(["chakana", "repovg"])
+        doc["applies_to"] = json.dumps(["default"])
         doc["hash"] = hashlib.md5(
             f"{doc['chunk_title']}{doc['chunk_body']}".encode()
         ).hexdigest()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GAVANTI - Knowledge Base Search (Fase 3)
+VELMA - Knowledge Base Search (Fase 3)
 Búsqueda híbrida FTS5+vector con RRF, panel HTML/JS para revisar y verificar entradas
 """
 
@@ -29,7 +29,13 @@ MIN_CONFIDENCE_SCORE = 0.50  # Threshold para búsqueda vectorial
                               #  ajustar a 0.65-0.75 cuando la KB tenga >500 entradas)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'gavanti-kb-secret-key'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'velma-kb-secret-key')
+app.config['PROJECT_NAME'] = os.getenv('PROJECT_NAME', 'VELMA')
+
+@app.context_processor
+def inject_project():
+    """Inyecta project_name en todos los templates."""
+    return {'project_name': app.config['PROJECT_NAME']}
 
 
 @dataclass
@@ -564,7 +570,7 @@ class KnowledgeSearch:
 
 def cli_search():
     """Interfaz de línea de comandos para búsqueda"""
-    parser = argparse.ArgumentParser(description='GAVANTI Knowledge Base Search')
+    parser = argparse.ArgumentParser(description='VELMA Knowledge Base Search')
     parser.add_argument('query', help='Término de búsqueda')
     parser.add_argument('--table', '-t', choices=['issues', 'docs', 'files', 'reasoning', 'all'],
                         default='all', help='Tabla a buscar')
@@ -731,7 +737,7 @@ def create_templates():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}GAVANTI Knowledge Base{% endblock %}</title>
+    <title>{% block title %}VELMA Knowledge Base{% endblock %}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -903,7 +909,7 @@ def create_templates():
 <body>
     <header>
         <div class="container">
-            <h1>🔷 GAVANTI Knowledge Base</h1>
+            <h1>🔷 VELMA Knowledge Base</h1>
             <p>Sistema de Memoria Persistente para Agentes de IA</p>
         </div>
     </header>
@@ -1150,7 +1156,7 @@ async function updateStatus(issueId, status) {
 
 def main():
     """Función principal"""
-    parser = argparse.ArgumentParser(description='GAVANTI Knowledge Base Search & Panel')
+    parser = argparse.ArgumentParser(description='VELMA Knowledge Base Search & Panel')
     parser.add_argument('--web', '-w', action='store_true', help='Iniciar panel web')
     parser.add_argument('--host', default='127.0.0.1', help='Host para el servidor web')
     parser.add_argument('--port', '-p', type=int, default=5000, help='Puerto para el servidor web')
@@ -1166,7 +1172,7 @@ def main():
     # Modo web
     if args.web:
         print("="*60)
-        print("  GAVANTI - Knowledge Base Web Panel (Fase 3)")
+        print("  VELMA - Knowledge Base Web Panel (Fase 3)")
         print("="*60)
         print(f"\n🌐 Iniciando servidor en http://{args.host}:{args.port}")
         print("\nPresiona Ctrl+C para detener")

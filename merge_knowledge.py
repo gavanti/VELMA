@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GAVANTI - Knowledge Base Merge (Fase 4)
+VELMA - Knowledge Base Merge (Fase 4)
 Deduplicación por hash y vector, sync de chunks al repo, GitHub Action
 """
 
@@ -598,7 +598,7 @@ class KnowledgeMerger:
 def main():
     """Función principal"""
     parser = argparse.ArgumentParser(
-        description='GAVANTI Knowledge Base Merge - Deduplicación y sync'
+        description='VELMA Knowledge Base Merge - Deduplicación y sync'
     )
     parser.add_argument(
         '--dry-run', '-d',
@@ -633,7 +633,7 @@ def main():
     args = parser.parse_args()
     
     print("="*60)
-    print("  GAVANTI - Knowledge Base Merge (Fase 4)")
+    print("  VELMA - Knowledge Base Merge (Fase 4)")
     print("  Deduplicación y sincronización")
     print("="*60)
     
