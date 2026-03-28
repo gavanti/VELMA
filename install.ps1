@@ -88,7 +88,7 @@ function Update-Files {
         if ($_.Name -eq ".env" -and (Test-Path $dest)) { return }
         
         if ($_.PSIsContainer) {
-            if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -ItemType Directory -Force | Out-Null }
+            if (!(Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
         } else {
             # Asegurar que el directorio de destino existe antes de copiar el archivo
             $destDir = Split-Path $dest
