@@ -12,7 +12,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 # Configuraci n
-DB_NAME = "knowledge.db"
+DB_NAME = str(Path(__file__).parent / "knowledge.db")
 MODEL_NAME = "all-MiniLM-L6-v2"
 MODEL_PATH = Path("./models")
 

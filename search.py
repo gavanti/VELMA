@@ -22,7 +22,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 from kb_utils import cosine_similarity, encode_text, OllamaEnricher
 
 # Configuración
-DB_NAME = "knowledge.db"
+DB_NAME = str(Path(__file__).parent / "knowledge.db")
 DEFAULT_K = 60   # Constante para RRF
 MIN_CONFIDENCE_SCORE = 0.50
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2:1b')

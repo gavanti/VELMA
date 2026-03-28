@@ -66,7 +66,7 @@ except ImportError:
         def translate_and_enrich(self, text): return text
 
 # Configuración
-DB_NAME = "knowledge.db"
+DB_NAME = str(Path(__file__).parent / "knowledge.db")
 
 # Extensiones de archivos soportados
 CODE_EXTENSIONS = {
