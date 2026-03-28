@@ -50,17 +50,20 @@ def run_command(command, description, task, progress):
 def main():
     console.clear()
     
+    # Autodeteccion de contexto
+    current_dir = Path.cwd()
+    project_name = current_dir.name
+    
     # Header
     console.print("[magenta]==================================================[/magenta]")
-    console.print("[magenta]  V E L M A - Persistent Memory for AI Agents[/magenta]")
-    console.print("[magenta]  v0.4.5 Installer[/magenta]")
+    console.print(f"[magenta]  V E L M A - Persistent Memory for {project_name}[/magenta]")
+    console.print("[magenta]  v0.5.5 Automa-Installer[/magenta]")
     console.print("[magenta]==================================================[/magenta]")
 
-    console.print("\n[bold]Bienvenido al instalador automatico de VELMA.[/bold]")
-    console.print("Este script configurara la base de datos, los embeddings y la documentacion inicial.\n")
+    console.print(f"\n[bold]Instalando memoria persistente en:[/bold] [cyan]{current_dir}[/cyan]")
+    console.print(f"[bold]Proyecto detectado:[/bold] [yellow]{project_name}[/yellow]\n")
 
-    if not Confirm.ask("¿Deseas iniciar la instalacion ahora?", default=True):
-        console.print("[yellow]Instalacion cancelada por el usuario.[/yellow]")
+    if not Confirm.ask("¿Deseas inicializar VELMA en este directorio?", default=True):
         return
 
     with Progress(
@@ -69,6 +72,17 @@ def main():
         TaskProgressColumn(),
         expand=True
     ) as progress:
+
+        # Paso 1: Configurar .env automaticamente
+        t0 = progress.add_task("[yellow]Configurando entorno...", total=100)
+        env_content = f"""PROJECT_NAME={project_name}
+DEV_NAME={os.getlogin() if hasattr(os, 'getlogin') else 'developer'}
+DB_PATH=knowledge.db
+MODEL_NAME=paraphrase-multilingual-MiniLM-L12-v2
+MIN_CONFIDENCE_SCORE=0.50
+"""
+        Path(".env").write_text(env_content)
+        progress.update(t0, completed=100, description="[green].env configurado")
 
         # Paso 1: Dependencias
         t1 = progress.add_task("[yellow]Verificando dependencias Python...", total=100)

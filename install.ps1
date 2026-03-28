@@ -1,7 +1,8 @@
-# VELMA - One-Click Bootstrapper for Windows
-# Usage: irm https://raw.githubusercontent.com/your-repo/velma/main/install.ps1 | iex
+# VELMA - Smart Bootstrapper for Windows
+# Usage: irm https://raw.githubusercontent.com/TU_USUARIO/VELMA/main/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
+$REPO_URL = "https://github.com/TU_USUARIO/VELMA.git" # <-- CAMBIA ESTO POR TU URL REAL
 
 function Show-Header {
     Clear-Host
@@ -23,41 +24,49 @@ function Show-Header {
 function Start-VelmaInstall {
     Show-Header
     
-    Write-Host "[*] Bienvenido a VELMA." -ForegroundColor Cyan
-    Write-Host "    VELMA permite a tus agentes recordar soluciones pasadas y"
-    Write-Host "    reglas de negocio sin gastar tokens en razonamiento repetitivo."
-    Write-Host ""
-    Write-Host "[?] Este script realizara las siguientes acciones:" -ForegroundColor Yellow
-    Write-Host "    1. Clonar/Verificar archivos de VELMA"
-    Write-Host "    2. Configurar entorno Python y dependencias"
-    Write-Host "    3. Inicializar Base de Datos Vectorial"
-    Write-Host "    4. Activar Protocolo de Skills"
+    $currentDir = Get-Location
+    Write-Host "[*] Preparando instalacion en: $($currentDir.Path)" -ForegroundColor Cyan
     Write-Host ""
 
-    $confirm = Read-Host "Presiona ENTER para comenzar la instalacion (o Ctrl+C para cancelar)"
-    
-    # 1. Verificar Python
-    Write-Host "`n[*] Verificando entorno..." -ForegroundColor Cyan
+    # 1. Verificar si el repo ya existe aquí, si no, descargarlo
+    if (!(Test-Path "velma-install.py")) {
+        Write-Host "[?] VELMA no detectada. ¿Deseas descargar el núcleo del sistema?" -ForegroundColor Yellow
+        $choice = Read-Host "[y/n] (y)"
+        if ($choice -eq "n") { Write-Host "Abortado."; return }
+
+        Write-Host "[*] Descargando VELMA desde el repositorio..." -ForegroundColor Cyan
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            # Clonar si hay Git
+            git clone --depth 1 $REPO_URL .temp_velma
+            Move-Item .temp_velma/* . -Force
+            Remove-Item .temp_velma -Recurse -Force
+        } else {
+            # Descarga por ZIP si no hay Git (más universal)
+            Write-Host "[*] Git no detectado, descargando via WebRequest..." -ForegroundColor Yellow
+            $zipUrl = "$($REPO_URL.Replace('.git',''))/archive/refs/heads/main.zip"
+            Invoke-WebRequest -Uri $zipUrl -OutFile "velma.zip"
+            Expand-Archive -Path "velma.zip" -DestinationPath ".temp_zip" -Force
+            $innerDir = Get-ChildItem ".temp_zip" | Select-Object -First 1
+            Move-Item "$($innerDir.FullName)\*" . -Force
+            Remove-Item "velma.zip", ".temp_zip" -Recurse -Force
+        }
+    }
+
+    # 2. Verificar Python
     if (!(Get-Command python -ErrorAction SilentlyContinue)) {
-        Write-Host "[!] Python no detectado. Por favor instala Python 3.10+ para continuar." -ForegroundColor Red
+        Write-Host "`n[!] Python no detectado. Instala Python 3.10+ para continuar." -ForegroundColor Red
+        Write-Host "    Link: https://www.python.org/downloads/"
         return
     }
 
-    # 2. Instalar Rich para la TUI de Python si no esta
-    Write-Host "[*] Preparando interfaz visual..." -ForegroundColor Cyan
+    # 3. Lanzar el instalador visual de Python
+    Write-Host "`n[*] Iniciando interfaz visual de instalacion..." -ForegroundColor Magenta
     python -m pip install rich --quiet
-
-    # 3. Lanzar el instalador principal de VELMA
-    if (Test-Path "velma-install.py") {
-        python velma-install.py
-    } else {
-        Write-Host "[!] No se encontro velma-install.py en el directorio actual." -ForegroundColor Red
-        Write-Host "    Asegurate de ejecutar este script en la raiz del repo."
-    }
+    python velma-install.py
 }
 
 try {
     Start-VelmaInstall
 } catch {
-    Write-Host "`n[!] Error inesperado: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "`n[!] Error: $($_.Exception.Message)" -ForegroundColor Red
 }
