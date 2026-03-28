@@ -155,41 +155,54 @@ Si hay constraints en la tabla docs, son OBLIGATORIOS.
         )
         progress.update(t3, completed=100, description="[green]Protocolos OK")
 
-        # 5. Registrar skill en directorios globales de agentes
-        t4 = progress.add_task("[yellow]Registrando skill en agentes globales...", total=100)
-        import shutil
-        skill_src = Path(__file__).parent / "skills" / "velma" / "SKILL.md"
-        if skill_src.exists():
-            # Claude Code
-            claude_skills = Path.home() / ".claude" / "skills" / "velma"
-            claude_skills.mkdir(parents=True, exist_ok=True)
-            shutil.copy(skill_src, claude_skills / "SKILL.md")
-            # OpenCode
-            opencode_skills = Path.home() / ".config" / "opencode" / "skills" / "velma"
-            opencode_skills.mkdir(parents=True, exist_ok=True)
-            shutil.copy(skill_src, opencode_skills / "SKILL.md")
-            # Parchear ~/.claude/CLAUDE.md global
-            claude_global = Path.home() / ".claude" / "CLAUDE.md"
-            if claude_global.exists():
-                content = claude_global.read_text(encoding="utf-8")
-                velma_rule = "\n### VELMA Auto-activation\nIf the project contains a VELMA/ directory, VELMA skill is ALWAYS active.\nBefore ANY task: python VELMA/search.py \"<query>\" --table docs. No exceptions.\n"
-                if "velma/SKILL.md" not in content:
-                    claude_global.write_text(content + velma_rule, encoding="utf-8")
-        # opencode.json local
-        opencode_local = root_dir / "opencode.json"
-        if not opencode_local.exists():
-            opencode_local.write_text(
-                '{\n  "$schema": "https://opencode.ai/config.json",\n'
-                '  "agent": {\n    "default": {\n'
-                f'      "prompt": "{{file:{skill_ref}}}"\n'
-                '    }\n  }\n}\n'
-            )
-        progress.update(t4, completed=100, description="[green]Skill registrada globalmente")
-
-        # 6. Indexacion
+        # 5. Indexacion
         t5 = progress.add_task("[yellow]Indexando proyecto...", total=100)
         run_command("python indexer.py --docs", "Escaneando", t5, progress)
         progress.update(t5, completed=100, description="[green]Indexacion lista")
+
+    # ── Registro global (SIEMPRE, fuera del bloque interactivo) ──────────
+    import shutil
+
+    search_cmd  = f"python {cmd_prefix}search.py"
+    skill_ref   = f"{cmd_prefix}skills/velma/SKILL.md"
+    skill_src   = Path(__file__).parent / "skills" / "velma" / "SKILL.md"
+
+    if skill_src.exists():
+        # Claude Code
+        claude_skills = Path.home() / ".claude" / "skills" / "velma"
+        claude_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copy(skill_src, claude_skills / "SKILL.md")
+        console.print("[green][OK][/green] Skill registrada en ~/.claude/skills/velma/")
+
+        # OpenCode
+        opencode_skills = Path.home() / ".config" / "opencode" / "skills" / "velma"
+        opencode_skills.mkdir(parents=True, exist_ok=True)
+        shutil.copy(skill_src, opencode_skills / "SKILL.md")
+        console.print("[green][OK][/green] Skill registrada en ~/.config/opencode/skills/velma/")
+
+        # Parchear ~/.claude/CLAUDE.md global
+        claude_global = Path.home() / ".claude" / "CLAUDE.md"
+        if claude_global.exists():
+            content = claude_global.read_text(encoding="utf-8")
+            velma_rule = (
+                "\n### VELMA Auto-activation\n"
+                "If the project contains a VELMA/ directory, VELMA skill is ALWAYS active.\n"
+                "Before ANY task: python VELMA/search.py \"<query>\" --table docs. No exceptions.\n"
+            )
+            if "velma/SKILL.md" not in content:
+                claude_global.write_text(content + velma_rule, encoding="utf-8")
+                console.print("[green][OK][/green] ~/.claude/CLAUDE.md actualizado con regla VELMA")
+
+    # opencode.json local
+    opencode_local = root_dir / "opencode.json"
+    if not opencode_local.exists():
+        opencode_local.write_text(
+            '{\n  "$schema": "https://opencode.ai/config.json",\n'
+            '  "agent": {\n    "default": {\n'
+            f'      "prompt": "{{file:{skill_ref}}}"\n'
+            '    }\n  }\n}\n'
+        )
+        console.print("[green][OK][/green] opencode.json generado")
 
     console.print(f"\n[bold green]INSTALACION COMPLETADA EN ./{cmd_prefix}[/bold green]")
     console.print(f"Uso: [white]{search_cmd} \"tu query\"[/white]\n")
