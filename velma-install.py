@@ -72,8 +72,12 @@ def main():
     console.print(f"\n[bold]Instalando memoria persistente en:[/bold] [cyan]{root_dir.resolve()}[/cyan]")
     console.print(f"[bold]Proyecto detectado:[/bold] [yellow]{project_name}[/yellow]\n")
 
-    if not Confirm.ask("¿Deseas inicializar VELMA aquí?", default=True):
-        return
+    try:
+        if not Confirm.ask("¿Deseas inicializar VELMA aquí?", default=True):
+            return
+    except EOFError:
+        # En modo automatizado (sin terminal interactiva), asumimos Yes
+        console.print("[yellow]Ejecución no interactiva detectada, continuando automáticamente...[/yellow]")
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
