@@ -570,15 +570,21 @@ class KnowledgeIndexer:
             print(f"  [WARN]  Error indexando documentación {doc_path}: {e}")
     
     def index_all_docs(self, docs_dir: str = "docs"):
-        """Indexa todos los documentos markdown en un directorio"""
+        """Indexa todos los documentos markdown en un directorio de forma recursiva"""
         docs_path = self.project_path / docs_dir
         
         if not docs_path.exists():
             print(f"  [WARN]  Directorio de documentos no encontrado: {docs_path}")
             return
         
-        for doc_file in docs_path.glob('*.md'):
-            self.index_documentation(doc_file)
+        # rglob permite encontrar archivos en subdirectorios
+        docs = list(docs_path.rglob('*.md'))
+        if docs:
+            print(f"  [*] Encontrados {len(docs)} documentos markdown...")
+            for doc_file in docs:
+                self.index_documentation(doc_file)
+        else:
+            print(f"  [INFO] No se encontraron archivos .md en {docs_path}")
         
         self.conn.commit()
     
