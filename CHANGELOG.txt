@@ -1,0 +1,90 @@
+VELMA - Knowledge Base Vectorizado para Agentes
+================================================
+Changelog — formato: [version] fecha — descripcion
+
+--------------------------------------------------------------------------------
+[0.1.0] 2026-03-28 — Initial release: sistema completo con tests y embeddings
+--------------------------------------------------------------------------------
+
+SISTEMA CORE
+  + setup_kb.py        — Crea schema SQLite completo (issues_log, docs_index,
+                         files_index, functions_index, reasoning_log) con FTS5
+                         virtual tables y triggers de sincronización automática
+  + indexer.py         — Indexa archivos .py/.js/.ts y documentación .md por
+                         chunks de headers, con hash-caching para skip si no cambió
+  + search.py          — Motor de búsqueda híbrida FTS5 + vectorial con
+                         Reciprocal Rank Fusion (RRF, k=60) + panel web Flask
+  + merge_knowledge.py — Sincronización local→shared con deduplicación por
+                         fingerprint MD5 y similitud semántica (enrich/conflict)
+  + kb_utils.py        — Utilidades: compute_hash, detect_chunk_type,
+                         get_chunk_weight, cosine_similarity, encode_text/texts
+
+EMBEDDINGS (activados en esta release)
+  + Modelo: all-MiniLM-L6-v2 (384 dimensiones, ~22MB, corre local sin API)
+  + Singleton get_embedding_model() — carga una sola vez por proceso
+  + encode_text() / encode_texts() — generación individual y en batch
+  + Embeddings generados en: docs_index, issues_log, files_index, functions_index
+  + Búsqueda vectorial: search_vector_issues() + search_vector_docs()
+  + Threshold de confianza: 0.50 (ajustable; 0.75 recomendado para KB >500 entradas)
+
+SUITE DE TESTS (192 tests — 0 fallos)
+  + tests/conftest.py                      — Fixtures pytest: DB en memoria,
+                                             schema completo, datos pre-poblados
+  + tests/fixtures/generate_test_data.py   — Generador sintético: 80 issues +
+                                             14 docs con semilla fija (reproducible)
+  + tests/unit/test_utils.py               — 53 tests: hash, JSON fields, expiry,
+                                             detect_chunk_type, chunk weights,
+                                             cosine similarity (incl. 384 dims)
+  + tests/unit/test_fts5.py                — 58 tests: queries normales, 15 casos
+                                             de caracteres especiales, 9 intentos
+                                             de SQL injection, sanitize_fts_query
+  + tests/integration/test_indexer.py      — Tests: should_index_file, hash cache,
+                                             extracción de funciones Python,
+                                             chunking markdown, storage en DB
+  + tests/integration/test_search.py       — Tests: search_issues, search_docs,
+                                             search_all, score normalization,
+                                             chunk weight boosting, get_stats
+  + tests/integration/test_merge.py        — Tests: content_hash, find_similar,
+                                             merge actions (skip/add/enrich/conflict),
+                                             resolve_conflict, merge_all, merge_doc
+  + tests/agent_tester.py                  — Agente económico batch: 15 escenarios
+                                             predefinidos, métricas precision/recall/
+                                             latencia, estimación de tokens ahorrados
+  + tests/seed_db.py                       — Seed script: inserta JSON de Gemini
+                                             en la DB con embeddings reales
+  + run_all_tests.py                       — Runner principal: unitarios →
+                                             integración → agente, reporte CLI
+  + requirements-test.txt                  — pytest, pytest-timeout, pytest-cov,
+                                             hypothesis, numpy
+
+DATOS DE PRUEBA (generados por Gemini 2.0 Flash)
+  + tests/seed_data.json   — 30 issues verificados (6 temas × 5 issues):
+                               Supabase connection, JWT token, Aurio balance,
+                               RLS policy, FTS5 sanitization, API circuit breaker
+                           — 8 chunks de documentación para chakana-reglas.md:
+                               constraints, rules, procedures, concepts faltantes
+  + docs/chakana-reglas.md — Reglas de negocio Chakana: Aurios ($0.01 USD),
+                             Embajadores, Tambus, procedimientos de canje
+
+BUGS DESCUBIERTOS Y DOCUMENTADOS
+  ! detect_chunk_type: "prohibida" no matchea "prohibido" (sin stemming)
+  ! detect_chunk_type: "caso muestra cómo" activa 'procedure' antes que 'example'
+  ! search_issues: no ordena por score normalizado (sigue orden raw de FTS5)
+  ! index_documentation: stats["docs_indexed"] no refleja el skip correctamente
+  ! FTS5: queries con comilla sin cerrar lanza OperationalError (sin sanitizar)
+
+RESULTADOS DEL AGENTE ECONÓMICO (knowledge.db con 30 issues + 18 docs)
+  Escenarios pasados:  13/15  (86.7%)  — APROBADO (threshold: 75%)
+  Precision:           100.0%           — 0 falsos positivos
+  Recall proxy:        86.7%
+  F1 Score:            92.9%
+  Latencia promedio:   ~7ms             — (excluye carga inicial del modelo)
+  Tokens ahorrados:    ~21,000          — 70% vs razonar desde cero
+  Fallos esperados:    typos ortográficos, queries cross-idioma (limitación FTS5)
+
+PRÓXIMOS PASOS (Fase 2)
+  - Sanitización FTS5 activada por defecto en search_issues/search_docs
+  - Threshold de confianza adaptativo según tamaño de KB
+  - Embeddings para issues_log generados durante indexer.py --all
+  - Panel web: endpoint para visualizar scores vectoriales por query
+  - Generalización: quitar referencias hardcoded a Chakana/Aurio/Embajador

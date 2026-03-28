@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - GAVANTI KB{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>📊 Estadísticas del Knowledge Base</h2>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="number">{{ stats.issues_log }}</div>
+            <div class="label">Issues</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">{{ stats.docs_index }}</div>
+            <div class="label">Documentos</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">{{ stats.files_index }}</div>
+            <div class="label">Archivos</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">{{ stats.functions_index }}</div>
+            <div class="label">Funciones</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">{{ stats.reasoning_log }}</div>
+            <div class="label">Razonamientos</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>📋 Issues por Estado</h2>
+    <div class="stats-grid">
+        {% for status, count in stats.issues_by_status.items() %}
+        <div class="stat-card">
+            <div class="number">{{ count }}</div>
+            <div class="label">{{ status }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>📚 Documentos por Tipo</h2>
+    <div class="stats-grid">
+        {% for type, count in stats.docs_by_type.items() %}
+        <div class="stat-card">
+            <div class="number">{{ count }}</div>
+            <div class="label">{{ type }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

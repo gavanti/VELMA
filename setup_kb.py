@@ -1,0 +1,628 @@
+#!/usr/bin/env python3
+"""
+GAVANTI - Knowledge Base Setup (Fase 1)
+Crea knowledge.db con todas las tablas, FTS5, y prepara para embeddings
+"""
+
+import os
+import sqlite3
+import sys
+import hashlib
+from pathlib import Path
+from datetime import datetime, timedelta
+
+# Configuración
+DB_NAME = "knowledge.db"
+MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_PATH = Path("./models")
+
+def get_db_version():
+    """Obtiene la versión de SQLite"""
+    conn = sqlite3.connect(":memory:")
+    version = conn.execute("SELECT sqlite_version()").fetchone()[0]
+    conn.close()
+    return version
+
+def check_sqlite_features():
+    """Verifica características disponibles de SQLite"""
+    conn = sqlite3.connect(":memory:")
+    cursor = conn.cursor()
+    
+    features = {}
+    
+    # Verificar FTS5
+    try:
+        cursor.execute("CREATE VIRTUAL TABLE test_fts USING fts5(content);")
+        cursor.execute("DROP TABLE test_fts;")
+        features['fts5'] = True
+    except:
+        features['fts5'] = False
+    
+    # Verificar JSON1
+    try:
+        cursor.execute("SELECT json('{}');")
+        features['json1'] = True
+    except:
+        features['json1'] = False
+    
+    conn.close()
+    return features
+
+def create_database():
+    """Crea la base de datos SQLite con todas las tablas"""
+    db_path = Path(DB_NAME)
+    
+    # Eliminar DB existente para recrear (solo en setup inicial)
+    if db_path.exists():
+        print(f"🗑️  Eliminando base de datos existente: {DB_NAME}")
+        db_path.unlink()
+    
+    print(f"📦 Creando base de datos: {DB_NAME}")
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    # Habilitar foreign keys
+    cursor.execute("PRAGMA foreign_keys = ON;")
+    
+    # ============================================
+    # TABLA: issues_log - errores y resoluciones
+    # ============================================
+    print("  📋 Creando tabla issues_log...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS issues_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            error TEXT NOT NULL,
+            resolution TEXT,
+            context TEXT,
+            approach TEXT,
+            attempts TEXT,  -- JSON
+            tags TEXT,  -- JSON
+            outcome TEXT CHECK(outcome IN ('unverified', 'success', 'failed', 'human_confirmed')) DEFAULT 'unverified',
+            evidence TEXT,
+            status TEXT CHECK(status IN ('raw', 'verified', 'merged', 'archived')) DEFAULT 'raw',
+            fingerprint TEXT UNIQUE,
+            embedding BLOB,  -- Vector de 384 dimensiones (almacenado como bytes)
+            verified_by TEXT,
+            shared_id INTEGER,
+            owner TEXT NOT NULL DEFAULT 'unknown',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            verified_at DATETIME,
+            expires_at DATETIME DEFAULT (datetime('now', '+90 days'))
+        );
+    """)
+    
+    # Índice FTS5 para issues_log
+    cursor.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS issues_log_fts USING fts5(
+            error, resolution, context, approach, tags,
+            content='issues_log',
+            content_rowid='id'
+        );
+    """)
+    
+    # Triggers para mantener FTS5 sincronizado
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS issues_log_fts_insert AFTER INSERT ON issues_log BEGIN
+            INSERT INTO issues_log_fts(rowid, error, resolution, context, approach, tags)
+            VALUES (new.id, new.error, new.resolution, new.context, new.approach, new.tags);
+        END;
+    """)
+    
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS issues_log_fts_update AFTER UPDATE ON issues_log BEGIN
+            INSERT INTO issues_log_fts(issues_log_fts, rowid, error, resolution, context, approach, tags)
+            VALUES ('delete', old.id, old.error, old.resolution, old.context, old.approach, old.tags);
+            INSERT INTO issues_log_fts(rowid, error, resolution, context, approach, tags)
+            VALUES (new.id, new.error, new.resolution, new.context, new.approach, new.tags);
+        END;
+    """)
+    
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS issues_log_fts_delete AFTER DELETE ON issues_log BEGIN
+            INSERT INTO issues_log_fts(issues_log_fts, rowid, error, resolution, context, approach, tags)
+            VALUES ('delete', old.id, old.error, old.resolution, old.context, old.approach, old.tags);
+        END;
+    """)
+    
+    # ============================================
+    # TABLA: docs_index - documentación y reglas
+    # ============================================
+    print("  📚 Creando tabla docs_index...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS docs_index (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            doc_source TEXT NOT NULL,
+            chunk_title TEXT NOT NULL,
+            chunk_body TEXT NOT NULL,
+            chunk_type TEXT CHECK(chunk_type IN ('constraint', 'rule', 'procedure', 'concept', 'example')) DEFAULT 'concept',
+            order_in_doc INTEGER,
+            embedding BLOB,  -- Vector para búsqueda semántica
+            hash TEXT,
+            verified BOOLEAN DEFAULT 0,
+            applies_to TEXT,  -- JSON
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    
+    # Índice FTS5 para docs_index
+    cursor.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS docs_index_fts USING fts5(
+            chunk_title, chunk_body,
+            content='docs_index',
+            content_rowid='id'
+        );
+    """)
+    
+    # Triggers para docs_index FTS5
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS docs_index_fts_insert AFTER INSERT ON docs_index BEGIN
+            INSERT INTO docs_index_fts(rowid, chunk_title, chunk_body)
+            VALUES (new.id, new.chunk_title, new.chunk_body);
+        END;
+    """)
+    
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS docs_index_fts_update AFTER UPDATE ON docs_index BEGIN
+            INSERT INTO docs_index_fts(docs_index_fts, rowid, chunk_title, chunk_body)
+            VALUES ('delete', old.id, old.chunk_title, old.chunk_body);
+            INSERT INTO docs_index_fts(rowid, chunk_title, chunk_body)
+            VALUES (new.id, new.chunk_title, new.chunk_body);
+        END;
+    """)
+    
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS docs_index_fts_delete AFTER DELETE ON docs_index BEGIN
+            INSERT INTO docs_index_fts(docs_index_fts, rowid, chunk_title, chunk_body)
+            VALUES ('delete', old.id, old.chunk_title, old.chunk_body);
+        END;
+    """)
+    
+    # ============================================
+    # TABLA: files_index - archivos procesados
+    # ============================================
+    print("  📁 Creando tabla files_index...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS files_index (
+            path TEXT PRIMARY KEY,
+            hash TEXT NOT NULL,
+            summary TEXT,
+            language TEXT,
+            computed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    
+    # Índice FTS5 para files_index
+    cursor.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS files_index_fts USING fts5(
+            path, summary,
+            content='files_index',
+            content_rowid='rowid'
+        );
+    """)
+    
+    # Triggers para files_index FTS5
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS files_index_fts_insert AFTER INSERT ON files_index BEGIN
+            INSERT INTO files_index_fts(rowid, path, summary)
+            VALUES (new.rowid, new.path, new.summary);
+        END;
+    """)
+    
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS files_index_fts_update AFTER UPDATE ON files_index BEGIN
+            INSERT INTO files_index_fts(files_index_fts, rowid, path, summary)
+            VALUES ('delete', old.rowid, old.path, old.summary);
+            INSERT INTO files_index_fts(rowid, path, summary)
+            VALUES (new.rowid, new.path, new.summary);
+        END;
+    """)
+    
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS files_index_fts_delete AFTER DELETE ON files_index BEGIN
+            INSERT INTO files_index_fts(files_index_fts, rowid, path, summary)
+            VALUES ('delete', old.rowid, old.path, old.summary);
+        END;
+    """)
+    
+    # ============================================
+    # TABLA: functions_index - funciones/procedimientos
+    # ============================================
+    print("  ⚙️  Creando tabla functions_index...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS functions_index (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_path TEXT NOT NULL,
+            function_name TEXT NOT NULL,
+            signature TEXT,
+            docstring TEXT,
+            start_line INTEGER,
+            end_line INTEGER,
+            hash TEXT NOT NULL,
+            summary TEXT,
+            embedding BLOB,
+            computed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (file_path) REFERENCES files_index(path)
+        );
+    """)
+    
+    # ============================================
+    # TABLA: reasoning_log - razonamientos del agente
+    # ============================================
+    print("  💭 Creando tabla reasoning_log...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS reasoning_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task TEXT NOT NULL,
+            approach TEXT NOT NULL,
+            outcome TEXT,
+            linked_issue_id INTEGER,
+            status TEXT CHECK(status IN ('raw', 'verified', 'merged')) DEFAULT 'raw',
+            owner TEXT NOT NULL DEFAULT 'unknown',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (linked_issue_id) REFERENCES issues_log(id)
+        );
+    """)
+    
+    # Índice FTS5 para reasoning_log
+    cursor.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS reasoning_log_fts USING fts5(
+            task, approach, outcome,
+            content='reasoning_log',
+            content_rowid='id'
+        );
+    """)
+    
+    # Triggers para reasoning_log FTS5
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS reasoning_log_fts_insert AFTER INSERT ON reasoning_log BEGIN
+            INSERT INTO reasoning_log_fts(rowid, task, approach, outcome)
+            VALUES (new.id, new.task, new.approach, new.outcome);
+        END;
+    """)
+    
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS reasoning_log_fts_update AFTER UPDATE ON reasoning_log BEGIN
+            INSERT INTO reasoning_log_fts(reasoning_log_fts, rowid, task, approach, outcome)
+            VALUES ('delete', old.id, old.task, old.approach, old.outcome);
+            INSERT INTO reasoning_log_fts(rowid, task, approach, outcome)
+            VALUES (new.id, new.task, new.approach, new.outcome);
+        END;
+    """)
+    
+    cursor.execute("""
+        CREATE TRIGGER IF NOT EXISTS reasoning_log_fts_delete AFTER DELETE ON reasoning_log BEGIN
+            INSERT INTO reasoning_log_fts(reasoning_log_fts, rowid, task, approach, outcome)
+            VALUES ('delete', old.id, old.task, old.approach, old.outcome);
+        END;
+    """)
+    
+    # ============================================
+    # TABLA: schemas_index - esquemas de base de datos
+    # ============================================
+    print("  🗄️  Creando tabla schemas_index...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS schemas_index (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            table_name TEXT NOT NULL,
+            schema_definition TEXT NOT NULL,
+            description TEXT,
+            embedding BLOB,
+            hash TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    
+    # ============================================
+    # TABLA: session_metadata - metadatos de sesiones
+    # ============================================
+    print("  📅 Creando tabla session_metadata...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS session_metadata (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT UNIQUE NOT NULL,
+            owner TEXT NOT NULL,
+            start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            end_time DATETIME,
+            summary TEXT,
+            files_touched TEXT,  -- JSON
+            issues_created INTEGER DEFAULT 0,
+            issues_resolved INTEGER DEFAULT 0
+        );
+    """)
+    
+    # ============================================
+    # TABLA: shared_chunks - chunks compartidos (sync)
+    # ============================================
+    print("  🔄 Creando tabla shared_chunks...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS shared_chunks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chunk_type TEXT NOT NULL,  -- 'issue', 'doc', 'reasoning', 'schema'
+            source_table TEXT NOT NULL,
+            source_id INTEGER NOT NULL,
+            content_hash TEXT NOT NULL,
+            content_json TEXT NOT NULL,
+            merged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            merged_by TEXT NOT NULL
+        );
+    """)
+    
+    # ============================================
+    # Índices adicionales para performance
+    # ============================================
+    print("  🔧 Creando índices...")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_issues_status ON issues_log(status);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_issues_owner ON issues_log(owner);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_issues_fingerprint ON issues_log(fingerprint);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_issues_created ON issues_log(created_at);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_issues_expires ON issues_log(expires_at);")
+    
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_docs_source ON docs_index(doc_source);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_docs_type ON docs_index(chunk_type);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_docs_verified ON docs_index(verified);")
+    
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_hash ON files_index(hash);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_language ON files_index(language);")
+    
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_functions_file ON functions_index(file_path);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_functions_name ON functions_index(function_name);")
+    
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_reasoning_status ON reasoning_log(status);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_reasoning_owner ON reasoning_log(owner);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_reasoning_issue ON reasoning_log(linked_issue_id);")
+    
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_shared_type ON shared_chunks(chunk_type);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_shared_hash ON shared_chunks(content_hash);")
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"✅ Base de datos creada exitosamente: {DB_NAME}")
+    return True
+
+def create_config_file():
+    """Crea archivo de configuración .env.example"""
+    config_content = """# GAVANTI Knowledge Base Configuration
+
+# Base de datos
+DB_PATH=knowledge.db
+
+# Modelo de embeddings (opcional - para búsqueda semántica avanzada)
+MODEL_NAME=all-MiniLM-L6-v2
+MODEL_PATH=./models
+
+# Configuración de sync (Fase 4)
+SUPABASE_URL=
+SUPABASE_KEY=
+SUPABASE_TABLE=shared_knowledge
+
+# Configuración de expiración
+DEFAULT_EXPIRY_DAYS=90
+MIN_CONFIDENCE_SCORE=0.75
+VECTOR_SIMILARITY_THRESHOLD=0.85
+
+# GitHub (para GitHub Actions)
+GITHUB_TOKEN=
+REPO_OWNER=
+REPO_NAME=
+
+# Configuración del dev
+DEV_NAME=developer
+PROJECT_NAME=chakana
+"""
+    
+    with open(".env.example", "w") as f:
+        f.write(config_content)
+    
+    print("✅ Archivo .env.example creado")
+
+def create_requirements():
+    """Crea archivo requirements.txt"""
+    requirements = """# Core dependencies
+numpy>=1.24.0
+python-dotenv>=1.0.0
+
+# Optional: For semantic search with local embeddings
+# sentence-transformers>=2.2.0
+
+# Optional: For file watching
+# watchdog>=3.0.0
+
+# Web panel (Fase 3)
+flask>=2.3.0
+
+# Optional: Vector search extension
+# sqlite-vec>=0.1.0
+"""
+    
+    with open("requirements.txt", "w") as f:
+        f.write(requirements)
+    
+    print("✅ Archivo requirements.txt creado")
+
+def create_utils_module():
+    """Crea módulo de utilidades para el knowledge base"""
+    utils_code = '''"""
+GAVANTI - Knowledge Base Utilities
+Funciones auxiliares para el sistema de knowledge base
+"""
+
+import hashlib
+import json
+from datetime import datetime, timedelta
+
+def compute_hash(text: str) -> str:
+    """Calcula hash MD5 de un texto"""
+    return hashlib.md5(text.encode('utf-8')).hexdigest()
+
+def compute_file_hash(content: bytes) -> str:
+    """Calcula hash MD5 del contenido de un archivo"""
+    return hashlib.md5(content).hexdigest()
+
+def parse_json_field(field: str) -> list:
+    """Parsea un campo JSON de la base de datos"""
+    if field is None:
+        return []
+    try:
+        return json.loads(field)
+    except:
+        return []
+
+def format_json_field(data: list or dict) -> str:
+    """Formatea datos para almacenar como JSON"""
+    return json.dumps(data, ensure_ascii=False)
+
+def get_expiry_date(days: int = 90) -> str:
+    """Calcula fecha de expiración"""
+    expiry = datetime.now() + timedelta(days=days)
+    return expiry.isoformat()
+
+def detect_chunk_type(title: str, body: str) -> str:
+    """Detecta automáticamente el tipo de chunk basado en contenido"""
+    title_lower = title.lower()
+    body_lower = body.lower()
+    
+    # Palabras clave para constraints
+    constraint_keywords = ['nunca', 'siempre', 'obligatorio', 'prohibido', 'exactamente', 'solo', 'único']
+    if any(kw in title_lower or kw in body_lower for kw in constraint_keywords):
+        return 'constraint'
+    
+    # Palabras clave para rules
+    rule_keywords = ['regla', 'política', 'debe', 'requiere', 'acumula', 'canjea']
+    if any(kw in title_lower or kw in body_lower for kw in rule_keywords):
+        return 'rule'
+    
+    # Palabras clave para procedures
+    procedure_keywords = ['paso', 'cómo', 'para', 'seguir', 'proceso', 'registrar']
+    if any(kw in title_lower or kw in body_lower for kw in procedure_keywords):
+        return 'procedure'
+    
+    # Palabras clave para examples
+    example_keywords = ['ejemplo', 'ilustración', 'caso', 'muestra']
+    if any(kw in title_lower or kw in body_lower for kw in example_keywords):
+        return 'example'
+    
+    return 'concept'
+
+def get_chunk_weight(chunk_type: str) -> int:
+    """Retorna el peso de un tipo de chunk para ranking"""
+    weights = {
+        'constraint': 10,
+        'rule': 8,
+        'procedure': 7,
+        'concept': 5,
+        'example': 3
+    }
+    return weights.get(chunk_type, 5)
+
+def cosine_similarity(vec1, vec2):
+    """Calcula similitud coseno entre dos vectores"""
+    import numpy as np
+    
+    if vec1 is None or vec2 is None:
+        return 0.0
+    
+    try:
+        v1 = np.frombuffer(vec1, dtype=np.float32)
+        v2 = np.frombuffer(vec2, dtype=np.float32)
+        
+        dot = np.dot(v1, v2)
+        norm1 = np.linalg.norm(v1)
+        norm2 = np.linalg.norm(v2)
+        
+        if norm1 == 0 or norm2 == 0:
+            return 0.0
+        
+        return float(dot / (norm1 * norm2))
+    except:
+        return 0.0
+'''
+    
+    with open("kb_utils.py", "w") as f:
+        f.write(utils_code)
+    
+    print("✅ Módulo kb_utils.py creado")
+
+def verify_setup():
+    """Verifica que todo esté configurado correctamente"""
+    print("\\n" + "="*50)
+    print("VERIFICACIÓN DEL SETUP")
+    print("="*50)
+    
+    # Versión de SQLite
+    sqlite_version = get_db_version()
+    print(f"\\n📦 SQLite versión: {sqlite_version}")
+    
+    # Características disponibles
+    features = check_sqlite_features()
+    print(f"🔍 Características:")
+    for feat, available in features.items():
+        status = "✅" if available else "❌"
+        print(f"   {status} {feat}")
+    
+    # Verificar base de datos
+    if Path(DB_NAME).exists():
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        # Listar tablas
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+        tables = cursor.fetchall()
+        print(f"\\n📊 Tablas creadas ({len(tables)}):")
+        for table in tables:
+            print(f"   • {table[0]}")
+        
+        # Contar registros en tablas principales
+        print(f"\\n📈 Estado inicial:")
+        for table_name in ['issues_log', 'docs_index', 'files_index', 'reasoning_log']:
+            try:
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name};")
+                count = cursor.fetchone()[0]
+                print(f"   {table_name}: {count} registros")
+            except:
+                pass
+        
+        conn.close()
+    else:
+        print("❌ Base de datos no encontrada")
+        return False
+    
+    print("\\n" + "="*50)
+    print("✅ SETUP COMPLETADO EXITOSAMENTE")
+    print("="*50)
+    return True
+
+def main():
+    """Función principal de setup"""
+    print("="*60)
+    print("  GAVANTI - Knowledge Base Setup (Fase 1)")
+    print("  Sistema de Memoria Persistente para Agentes de IA")
+    print("="*60)
+    print()
+    
+    # 1. Crear base de datos
+    try:
+        create_database()
+    except Exception as e:
+        print(f"❌ Error creando base de datos: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+    
+    # 2. Crear archivos de configuración
+    create_config_file()
+    create_requirements()
+    create_utils_module()
+    
+    # 3. Verificación final
+    verify_setup()
+    
+    print("\\n📋 Próximos pasos:")
+    print("   1. Copia .env.example a .env y configura tus variables")
+    print("   2. Instala dependencias: pip install -r requirements.txt")
+    print("   3. Ejecuta Fase 2: python indexer.py")
+    
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,114 @@
+# GAVANTI Knowledge Base - GitHub Action
+# Ejecuta merge automático de conocimiento verificado en cada PR
+
+name: Merge Knowledge Base
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+      - develop
+
+jobs:
+  merge-knowledge:
+    # Solo ejecutar si el PR fue mergeado
+    if: github.event.pull_request.merged == true
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install numpy
+      
+      - name: Download shared knowledge base
+        run: |
+          # Descargar la base de datos compartida desde el repo
+          # Esto puede ser desde S3, artifacts, o un branch separado
+          if [ -f "shared_knowledge.db" ]; then
+            echo "✅ Shared knowledge base found"
+          else
+            echo "⚠️ Creating new shared knowledge base"
+            touch shared_knowledge.db
+          fi
+      
+      - name: Get PR author
+        id: pr_author
+        run: |
+          echo "author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+      
+      - name: Merge knowledge
+        env:
+          DEV_NAME: ${{ steps.pr_author.outputs.author }}
+        run: |
+          echo "🔄 Merging knowledge from ${{ steps.pr_author.outputs.author }}"
+          python merge_knowledge.py --merged-by "${{ steps.pr_author.outputs.author }}" --output merge-result.json
+      
+      - name: Upload merge results
+        uses: actions/upload-artifact@v4
+        with:
+          name: merge-results
+          path: merge-result.json
+          retention-days: 30
+      
+      - name: Check for conflicts
+        run: |
+          CONFLICTS=$(python -c "import json; data=json.load(open('merge-result.json')); print(data['stats']['issues_conflicts'])")
+          if [ "$CONFLICTS" -gt 0 ]; then
+            echo "⚠️ $CONFLICTS conflicts detected during merge"
+            echo "Review conflicts using: python merge_knowledge.py --conflicts"
+            # No fallar el workflow, solo advertir
+          fi
+      
+      - name: Commit shared knowledge base
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Agregar la base de datos compartida
+          git add shared_knowledge.db
+          
+          # Solo hacer commit si hay cambios
+          if git diff --cached --quiet; then
+            echo "✅ No changes to commit"
+          else
+            git commit -m "🤖 Auto-merge knowledge base from PR #${{ github.event.pull_request.number }}
+          
+          Merged by: ${{ steps.pr_author.outputs.author }}
+          
+          $(cat merge-result.json | python -m json.tool --compact 2>/dev/null || echo 'See merge-result.json for details')"
+            
+            # Push al branch actual
+            git push
+          fi
+      
+      - name: Summary
+        run: |
+          echo "## 🧠 Knowledge Base Merge Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Métrica | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Extraer estadísticas del JSON
+          python -c "
+          import json
+          with open('merge-result.json') as f:
+              data = json.load(f)
+              stats = data['stats']
+              print(f\"| Issues procesados | {stats['issues_processed']} |\")
+              print(f\"| Issues agregados | {stats['issues_added']} |\")
+              print(f\"| Issues enriquecidos | {stats['issues_enriched']} |\")
+              print(f\"| Conflictos | {stats['issues_conflicts']} |\")
+              print(f\"| Docs agregados | {stats['docs_added']} |\")
+          " >> $GITHUB_STEP_SUMMARY
