@@ -51,19 +51,22 @@ def main():
     console.clear()
     
     # Autodeteccion de contexto
-    current_dir = Path.cwd()
-    project_name = current_dir.name
+    is_in_subdir = Path.cwd().name == "VELMA"
+    root_dir = Path("..") if is_in_subdir else Path(".")
+    project_name = root_dir.resolve().name
+    cmd_prefix = "VELMA/" if is_in_subdir else ""
     
     # Header
     console.print("[magenta]==================================================[/magenta]")
     console.print(f"[magenta]  V E L M A - Persistent Memory for {project_name}[/magenta]")
-    console.print("[magenta]  v0.5.5 Automa-Installer[/magenta]")
+    console.print("[magenta]  v0.7.0 Encapsulated Mode[/magenta]")
     console.print("[magenta]==================================================[/magenta]")
 
-    console.print(f"\n[bold]Instalando memoria persistente en:[/bold] [cyan]{current_dir}[/cyan]")
-    console.print(f"[bold]Proyecto detectado:[/bold] [yellow]{project_name}[/yellow]\n")
+    console.print(f"\n[bold]Instalando en:[/bold] [cyan]{root_dir.resolve()}[/cyan]")
+    console.print(f"[bold]Proyecto:[/bold] [yellow]{project_name}[/yellow]")
+    if is_in_subdir: console.print("[dim]Modo subdirectorio activado: Comandos prefijados con VELMA/[/dim]\n")
 
-    if not Confirm.ask("¿Deseas inicializar VELMA en este directorio?", default=True):
+    if not Confirm.ask("¿Deseas inicializar VELMA aquí?", default=True):
         return
 
     with Progress(
@@ -73,7 +76,7 @@ def main():
         expand=True
     ) as progress:
 
-        # Paso 1: Configurar .env automaticamente
+        # 1. Configurar .env
         t0 = progress.add_task("[yellow]Configurando entorno...", total=100)
         env_content = f"""PROJECT_NAME={project_name}
 DEV_NAME={os.getlogin() if hasattr(os, 'getlogin') else 'developer'}
@@ -83,6 +86,54 @@ MIN_CONFIDENCE_SCORE=0.50
 """
         Path(".env").write_text(env_content)
         progress.update(t0, completed=100, description="[green].env configurado")
+
+        # 2. Dependencias
+        t1 = progress.add_task("[yellow]Instalando dependencias...", total=100)
+        if run_command("pip install rich ollama sentence-transformers -q", "Instalando paquetes", t1, progress):
+            progress.update(t1, completed=100, description="[green]Dependencias OK")
+
+        # 3. Base de Datos
+        t2 = progress.add_task("[yellow]Creando DB...", total=100)
+        if run_command("python setup_kb.py", "Schema SQLite", t2, progress):
+            progress.update(t2, completed=100, description="[green]DB creada")
+
+        # 4. ARCHIVOS DE INSTRUCCIONES (EN LA RAIZ)
+        t3 = progress.add_task("[yellow]Instalando protocolos de agente...", total=100)
+        
+        # Plantilla genérica para los MDs
+        claude_content = f"""# VELMA Protocol
+> **SKILL**: `{cmd_prefix}skills/velma/SKILL.md`
+
+## Setup
+python {cmd_prefix}velma-install.py
+
+## Search
+python {cmd_prefix}search.py "query"
+"""
+        # Escribir en la carpeta superior (raiz)
+        (root_dir / "CLAUDE.md").write_text(claude_content)
+        (root_dir / "GEMINI.md").write_text(claude_content.replace("CLAUDE", "GEMINI"))
+        (root_dir / "INSTRUCTIONS.md").write_text(f"VELMA Memory System installed in ./{cmd_prefix}")
+        
+        progress.update(t3, completed=100, description="[green]Protocolos instalados en la raiz")
+
+        # 5. Indexacion (apuntando a la raiz)
+        t4 = progress.add_task("[yellow]Indexando proyecto padre...", total=100)
+        if run_command(f"python indexer.py --docs", "Escaneando archivos", t4, progress):
+            progress.update(t4, completed=100, description="[green]Proyecto indexado")
+
+    # Resumen Final
+    console.print("\n" + "="*50)
+    console.print("[bold green]INSTALACION COMPLETADA[/bold green]")
+    console.print("="*50)
+    console.print(f" Raiz del proyecto:  [cyan]{root_dir.resolve()}[/cyan]")
+    console.print(f" Nucleo VELMA:       [cyan]./VELMA/[/cyan]")
+    console.print(f" Protocolos:         [cyan]./CLAUDE.md, ./GEMINI.md[/cyan]")
+    
+    console.print("\n[bold magenta]Uso desde la raiz:[/bold magenta]")
+    console.print(f"  - Buscar: [white]python {cmd_prefix}search.py \"query\"[/white]")
+    console.print(f"  - Web UI: [white]python {cmd_prefix}search.py --web[/white]")
+
 
         # Paso 1: Dependencias
         t1 = progress.add_task("[yellow]Verificando dependencias Python...", total=100)

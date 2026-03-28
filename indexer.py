@@ -107,9 +107,19 @@ IGNORE_FILES = {
 class KnowledgeIndexer:
     """Indexador de conocimiento para el knowledge base"""
     
-    def __init__(self, db_path: str = DB_NAME, project_path: str = ".", use_ollama: bool = True):
+    def __init__(self, db_path: str = DB_NAME, project_path: str = None, use_ollama: bool = True):
         self.db_path = db_path
-        self.project_path = Path(project_path).resolve()
+        
+        # Si no se especifica path y estamos en una carpeta llamada VELMA, 
+        # apuntamos al padre (la raiz del proyecto)
+        if project_path is None:
+            if Path.cwd().name == "VELMA":
+                self.project_path = Path("..").resolve()
+            else:
+                self.project_path = Path(".").resolve()
+        else:
+            self.project_path = Path(project_path).resolve()
+            
         self.use_ollama = use_ollama
         self.enricher = OllamaEnricher() if use_ollama else None
         self.conn = None
