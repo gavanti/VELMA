@@ -1,4 +1,4 @@
-# VELMA - Smart Bootstrapper for Windows (Ultra-Safe Version)
+# VELMA - Smart Bootstrapper for Windows (Atomic Version)
 # Usage: irm https://raw.githubusercontent.com/gavanti/VELMA/main/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
@@ -16,76 +16,60 @@ function Show-Header {
     Write-Host $ascii -ForegroundColor Magenta
     Write-Host " --------------------------------------------------" -ForegroundColor Gray
     Write-Host "  VELMA: Persistent Memory for AI Agents" -ForegroundColor White
-    Write-Host "  Drop-in Installation Protocol" -ForegroundColor White
     Write-Host " --------------------------------------------------" -ForegroundColor Gray
-    Write-Host ""
 }
 
 function Start-VelmaInstall {
     Show-Header
-    
     $currentDir = Get-Location
-    Write-Host "[*] Carpeta detectada: $($currentDir.Path)" -ForegroundColor Cyan
+    
+    # 1. Limpiar rastro de archivos prohibidos (como 'nul') si existen
+    if (Test-Path "\\?\$($currentDir.Path)\nul") {
+        Write-Host "[!] Detectado rastro de archivo 'nul'. Limpiando..." -ForegroundColor Yellow
+        cmd /c "del \\.\$($currentDir.Path)\nul" 2>$null
+    }
 
-    # 1. Limpieza de residuos de intentos fallidos
-    if (Test-Path ".velma_unpack") { Remove-Item ".velma_unpack" -Recurse -Force -ErrorAction SilentlyContinue }
-    if (Test-Path "velma_temp.zip") { Remove-Item "velma_temp.zip" -Force -ErrorAction SilentlyContinue }
-
-    # 2. Descarga Limpia via ZIP
+    # 2. Descarga via ZIP
     if (!(Test-Path "velma-install.py")) {
-        Write-Host "[?] VELMA no detectada. Instalando nucleo..." -ForegroundColor Yellow
+        Write-Host "[?] Instalando nucleo de memoria..." -ForegroundColor Yellow
         
         $zipUrl = "$REPO_URL/archive/refs/heads/main.zip"
-        $zipFile = "velma_temp.zip"
-        $tempFolder = ".velma_unpack"
+        $zipFile = "v_temp.zip"
+        $tempFolder = ".v_unpack"
 
-        Write-Host "[*] Descargando desde GitHub..." -ForegroundColor Cyan
         Invoke-WebRequest -Uri $zipUrl -OutFile $zipFile
-        
-        Write-Host "[*] Desempaquetando..." -ForegroundColor Cyan
         Expand-Archive -Path $zipFile -DestinationPath $tempFolder -Force
         
         $unpackedDir = Get-ChildItem -Path $tempFolder | Select-Object -First 1
         
-        # MOVER ARCHIVOS UNO POR UNO (Surgical Move)
-        # Saltamos .git, .github y el archivo prohibido 'nul'
-        Get-ChildItem -Path "$($unpackedDir.FullName)\*" -Recurse | ForEach-Object {
-            $destPath = $_.FullName.Replace($unpackedDir.FullName, $currentDir.Path)
-            $destDir = Split-Path $destPath
-            
-            # Filtros de seguridad
-            if ($_.Name -eq "nul") { return } # Saltar el archivo prohibido de Windows
-            if ($_.FullName -like "*\.git\*") { return } # Saltar cualquier rastro de git
-            if ($_.FullName -like "*\.github\*") { return } # Saltar workflows
-            
-            if ($_.PSIsContainer) {
-                if (!(Test-Path $destPath)) { New-Item -ItemType Directory -Path $destPath -Force | Out-Null }
-            } else {
-                if (!(Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
-                Copy-Item -Path $_.FullName -Destination $destPath -Force
+        # COPIA POR WHITELIST (Solo lo esencial)
+        $whitelist = @("*.py", "*.md", "*.txt", "*.ps1", "templates", "skills", "tests", "requirements.txt")
+        
+        foreach ($pattern in $whitelist) {
+            Get-ChildItem -Path "$($unpackedDir.FullName)\$pattern" | ForEach-Object {
+                $dest = Join-Path $currentDir.Path $_.Name
+                if ($_.PSIsContainer) {
+                    Copy-Item -Path $_.FullName -Destination $dest -Recurse -Force
+                } else {
+                    Copy-Item -Path $_.FullName -Destination $dest -Force
+                }
             }
         }
         
-        # Limpieza final
+        # Limpieza
         Remove-Item $zipFile -Force
         Remove-Item $tempFolder -Recurse -Force
-        Write-Host "[OK] Nucleo inyectado sin conflictos." -ForegroundColor Green
+        Write-Host "[OK] Nucleo inyectado." -ForegroundColor Green
     }
 
-    # 3. Verificar Python
-    if (!(Get-Command python -ErrorAction SilentlyContinue)) {
-        Write-Host "`n[!] Python no detectado. Instala Python 3.10+." -ForegroundColor Red
-        return
+    # 3. Lanzar TUI
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        Write-Host "`n[*] Iniciando configuracion..." -ForegroundColor Magenta
+        python -m pip install rich --quiet
+        python velma-install.py
+    } else {
+        Write-Host "`n[!] Python no encontrado." -ForegroundColor Red
     }
-
-    # 4. Lanzar el instalador visual
-    Write-Host "`n[*] Iniciando configuracion..." -ForegroundColor Magenta
-    python -m pip install rich --quiet
-    python velma-install.py
 }
 
-try {
-    Start-VelmaInstall
-} catch {
-    Write-Host "`n[!] Error: $($_.Exception.Message)" -ForegroundColor Red
-}
+try { Start-VelmaInstall } catch { Write-Host "`n[!] Error: $($_.Exception.Message)" -ForegroundColor Red }
