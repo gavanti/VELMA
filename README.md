@@ -4,6 +4,15 @@ Sistema de memoria persistente para agentes de IA. Convierte razonamiento en rec
 
 > **Principio clave**: *Pensar es caro. Recordar es barato.*
 
+## ⚡ Instalación Rápida (Un solo Enter)
+
+Si estás en Windows (PowerShell), ejecuta:
+```powershell
+irm https://raw.githubusercontent.com/tu-usuario/velma/main/install.ps1 | iex
+```
+
+---
+
 ## Propósito
 
 Cada sesión de un agente de IA empieza desde cero. Este sistema resuelve eso con una base de conocimiento persistente que el agente consulta antes de razonar.
