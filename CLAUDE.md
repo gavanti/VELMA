@@ -33,30 +33,26 @@ python search.py "conexión base de datos" --table docs
 
 4. **NUNCA marques success porque el código "se ve correcto"**
 
-### Ejemplo de registro de issue:
+### Ejemplo de registro de conocimiento (Logger):
 
-```python
-import sqlite3
-import json
+El agente **DEBE** usar `logger.py` para guardar nuevos aprendizajes:
 
-conn = sqlite3.connect('knowledge.db')
-cursor = conn.cursor()
+```bash
+# Registrar un error resuelto
+python VELMA/logger.py issue \
+  --error "Descripción del error" \
+  --resolution "Solución técnica" \
+  --approach "Razonamiento" \
+  --evidence "Logs del test"
 
-cursor.execute("""
-    INSERT INTO issues_log (error, context, attempts, status, owner, outcome)
-    VALUES (?, ?, ?, 'raw', 'claude', 'unverified')
-""", (
-    "Error: <descripción del error>",
-    "<archivo>:<función>()",
-    json.dumps([
-        "Intento 1: <qué se intentó> - falló",
-        "Intento 2: <qué se intentó> - falló"
-    ])
-))
-
-conn.commit()
-conn.close()
+# Registrar un proceso o tarea finalizada
+python VELMA/logger.py reason \
+  --task "Nombre de la tarea" \
+  --approach "Pasos realizados" \
+  --outcome "Resultado final"
 ```
+
+Los registros entran como `raw` y solo serán visibles para otros agentes después de que un humano los verifique en el dashboard.
 
 ## Al resolver un error
 

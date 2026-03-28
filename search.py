@@ -1200,5 +1200,27 @@ def main():
     return 0
 
 
+@app.route('/verify/<table_name>/<int:item_id>', methods=['POST'])
+def verify_item(table_name, item_id):
+    """Marca una entrada como 'verified'."""
+    allowed_tables = ['issues_log', 'reasoning_log', 'docs_index']
+    if table_name not in allowed_tables:
+        return jsonify({'error': 'Invalid table'}), 400
+    
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    try:
+        now = datetime.now().isoformat()
+        if table_name == 'docs_index':
+            c.execute("UPDATE docs_index SET verified = 1, updated_at = ? WHERE id = ?", (now, item_id))
+        else:
+            c.execute(f"UPDATE {table_name} SET status = 'verified', verified_at = ? WHERE id = ?", (now, item_id))
+        conn.commit()
+        return jsonify({'status': 'success', 'verified_at': now})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
     sys.exit(main())
