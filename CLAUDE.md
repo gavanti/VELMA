@@ -1,10 +1,12 @@
 # VELMA Knowledge Base - Protocolo para Agentes
 
+> **SKILL CARGADA**: `skills/velma/SKILL.md` (Obligatorio revisar antes de actuar)
+
 ## Antes de empezar cualquier tarea
 
-1. Ejecuta `search.py` con el contexto de la tarea
-2. Si hay constraints relevantes, son obligatorias — no las ignores
-3. Si hay issues similares resueltos, úsalos como punto de partida
+1. Ejecuta `search.py` con el contexto de la tarea. **ESTO NO ES OPCIONAL**.
+2. Si hay constraints relevantes en la tabla `docs`, son obligatorios — no las ignores.
+3. Si hay issues similares resueltos, úsalos como punto de partida prioritario.
 
 ```bash
 # Ejemplo: Buscar información relevante antes de empezar
