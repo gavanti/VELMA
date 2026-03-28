@@ -614,7 +614,7 @@ def cli_search():
             
             for table, items in results.items():
                 if items:
-                    print(f"\n📁 {table.upper()} ({len(items)} resultados)")
+                    print(f"\n [FILES] {table.upper()} ({len(items)} resultados)")
                     print("-"*40)
                     for item in items:
                         print(f"  [{item.score:.3f}] {item.title}")
@@ -918,7 +918,7 @@ def create_templates():
 <body>
     <header>
         <div class="container">
-            <h1>🔷 VELMA Knowledge Base</h1>
+            <h1>[SEARCH] VELMA Knowledge Base</h1>
             <p>Sistema de Memoria Persistente para Agentes de IA</p>
         </div>
     </header>
@@ -982,7 +982,7 @@ def create_templates():
 </div>
 
 <div class="card">
-    <h2>📚 Documentos por Tipo</h2>
+    <h2>[DOCS] Documentos por Tipo</h2>
     <div class="stats-grid">
         {% for type, count in stats.docs_by_type.items() %}
         <div class="stat-card">
@@ -1028,7 +1028,7 @@ def create_templates():
     
     {% if results.docs %}
     <div class="card">
-        <h2>📚 Documentación ({{ results.docs|length }})</h2>
+        <h2>[DOCS] Documentación ({{ results.docs|length }})</h2>
         {% for item in results.docs %}
         <div class="result-item">
             <h3>{{ item.title }} <span class="score">{{ item.score }}</span></h3>
@@ -1045,7 +1045,7 @@ def create_templates():
     
     {% if results.files %}
     <div class="card">
-        <h2>📁 Archivos ({{ results.files|length }})</h2>
+        <h2>[FILES] Archivos ({{ results.files|length }})</h2>
         {% for item in results.files %}
         <div class="result-item">
             <h3>{{ item.title }} <span class="score">{{ item.score }}</span></h3>
