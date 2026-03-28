@@ -14,9 +14,9 @@ from pathlib import Path
 
 # Agregar carpeta actual al path para importar kb_utils
 sys.path.insert(0, str(Path(__file__).parent))
-from kb_utils import encode_text, compute_hash, format_json_field
+from kb_utils import encode_text, compute_hash, format_json_field, get_db_path
 
-DB_NAME = os.getenv("DB_PATH", "knowledge.db")
+DB_NAME = get_db_path()
 
 def log_issue(error, resolution, context, approach, attempts, tags, evidence, owner):
     conn = sqlite3.connect(DB_NAME)

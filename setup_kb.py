@@ -12,7 +12,11 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 # Configuraci n
-DB_NAME = str(Path(__file__).parent / "knowledge.db")
+try:
+    from kb_utils import compute_hash, get_db_path
+    DB_NAME = get_db_path()
+except ImportError:
+    DB_NAME = str(Path(__file__).parent / "knowledge.db")
 MODEL_NAME = "all-MiniLM-L6-v2"
 MODEL_PATH = Path("./models")
 

@@ -66,7 +66,15 @@ except ImportError:
         def translate_and_enrich(self, text): return text
 
 # Configuración
-DB_NAME = str(Path(__file__).parent / "knowledge.db")
+try:
+    from kb_utils import (
+        compute_hash, compute_file_hash, format_json_field,
+        detect_chunk_type, get_chunk_weight,
+        encode_text, encode_texts, OllamaEnricher, get_db_path
+    )
+    DB_NAME = get_db_path()
+except ImportError:
+    DB_NAME = str(Path(__file__).parent / "knowledge.db")
 
 # Extensiones de archivos soportados
 CODE_EXTENSIONS = {

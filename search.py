@@ -19,10 +19,10 @@ from dataclasses import dataclass
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 
 # Embeddings y similitud
-from kb_utils import cosine_similarity, encode_text, OllamaEnricher
+from kb_utils import cosine_similarity, encode_text, OllamaEnricher, get_db_path
 
 # Configuración
-DB_NAME = str(Path(__file__).parent / "knowledge.db")
+DB_NAME = get_db_path()
 DEFAULT_K = 60   # Constante para RRF
 MIN_CONFIDENCE_SCORE = 0.50
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'llama3.2:1b')

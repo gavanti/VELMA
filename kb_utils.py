@@ -8,6 +8,10 @@ import json
 import numpy as np
 from datetime import datetime, timedelta
 
+def get_db_path():
+    """Retorna la ruta absoluta a la base de datos knowledge.db"""
+    return str(Path(__file__).parent / "knowledge.db")
+
 def compute_hash(text: str) -> str:
     """Calcula hash MD5 de un texto"""
     return hashlib.md5(text.encode('utf-8')).hexdigest()
