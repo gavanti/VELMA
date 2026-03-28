@@ -49,19 +49,17 @@ def check_sqlite_features():
     return features
 
 def create_database():
-    """Crea la base de datos SQLite con todas las tablas"""
+    """Crea o actualiza la base de datos SQLite con todas las tablas"""
     db_path = Path(DB_NAME)
     
-    # Eliminar DB existente para recrear (solo en setup inicial)
-    if db_path.exists():
-        print(f"[DELETE]  Eliminando base de datos existente: {DB_NAME}")
-        db_path.unlink()
-    
-    print(f"[db] Creando base de datos: {DB_NAME}")
+    is_new = not db_path.exists()
+    if is_new:
+        print(f"[db] Creando base de datos: {DB_NAME}")
+    else:
+        print(f"[db] Verificando/Actualizando base de datos existente: {DB_NAME}")
+
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    
-    # Habilitar foreign keys
     cursor.execute("PRAGMA foreign_keys = ON;")
     
     # ============================================
