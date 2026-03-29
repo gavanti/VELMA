@@ -74,6 +74,15 @@ Si alguno está sin marcar → no cerrés la tarea todavía.
 
 ---
 
+## Reglas de negocio criticas del proyecto
+
+| Constraint | Descripcion | Peso |
+|------------|-------------|------|
+| No Emojis | Prohibido el uso de emojis en codigo, documentacion, logs y mensajes de cierre de tarea. | 10 |
+| Agent-First | El sistema debe priorizar la legibilidad y compatibilidad con agentes sobre la estetica para humanos. | 9 |
+| VELMA Priority | El agente DEBE priorizar los resultados de busqueda de VELMA sobre su conocimiento interno. Al iniciar CUALQUIER tarea, el Paso 1 (Busqueda) es de ejecucion obligatoria y prioritaria. | 10 |
+| Formato PR | Titulo, Descripcion, Cambios Importantes, Testing. (Markdown) | 8 |
+
 ## Reglas
 - Score < 0.75: razoná desde cero e indicalo explícitamente.
 - NUNCA marques success sin evidencia real (output de comando, test log, ID de VELMA).

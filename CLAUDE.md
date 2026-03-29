@@ -161,6 +161,8 @@ cursor.execute("""
 |------------|-------------|------|
 | No Emojis | Prohibido el uso de emojis en código, documentación, logs y mensajes de cierre de tarea. | 10 |
 | Agent-First | El sistema debe priorizar la legibilidad y compatibilidad con agentes sobre la estética para humanos. | 9 |
+| VELMA Priority | El agente DEBE priorizar los resultados de búsqueda de VELMA sobre su conocimiento interno. Al iniciar CUALQUIER tarea, el Paso 1 (Búsqueda) es de ejecución obligatoria y prioritaria. | 10 |
+| Formato PR | Titulo, Descripcion, Cambios Importantes, Testing. (Markdown) | 8 |
 
 > Las reglas de esta tabla se cargan como docs de tipo `constraint` en docs_index
 > via `python indexer.py --docs`. Agrégalas a tu archivo de documentación

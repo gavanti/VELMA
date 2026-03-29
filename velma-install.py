@@ -40,6 +40,54 @@ def run_command(command, description, task, progress):
     except:
         return False
 
+def _register_hooks(root_dir, progress, task):
+    """Registra los hooks de VELMA en los perfiles de shell detectados."""
+    root_path = Path(root_dir).resolve()
+    hooks_dir = root_path / "hooks"
+    
+    # 1. Bash / Zsh
+    bash_profile = Path.home() / ".bashrc"
+    zsh_profile = Path.home() / ".zshrc"
+    bash_hook_script = hooks_dir / "bash_hooks.sh"
+    
+    source_line = f"\n# VELMA Hooks\n[ -f \"{bash_hook_script}\" ] && source \"{bash_hook_script}\"\n"
+    
+    for profile in [bash_profile, zsh_profile]:
+        if profile.exists():
+            content = profile.read_text(errors='ignore')
+            if str(bash_hook_script) not in content:
+                with profile.open("a") as f:
+                    f.write(source_line)
+                progress.update(task, description=f"[cyan]Hook Bash registrado en {profile.name}")
+
+    # 2. PowerShell
+    # Intentar obtener la ruta del perfil de PowerShell
+    try:
+        ps_profile_path = subprocess.check_output(
+            ["powershell", "-NoProfile", "-Command", "$PROFILE"], 
+            text=True
+        ).strip()
+        
+        if ps_profile_path:
+            ps_profile = Path(ps_profile_path)
+            ps_hook_script = hooks_dir / "powershell_hooks.ps1"
+            ps_source_line = f"\n# VELMA Hooks\nif (Test-Path \"{ps_hook_script}\") {{ . \"{ps_hook_script}\" }}\n"
+            
+            if not ps_profile.parent.exists():
+                ps_profile.parent.mkdir(parents=True, exist_ok=True)
+                
+            content = ""
+            if ps_profile.exists():
+                content = ps_profile.read_text(errors='ignore')
+                
+            if str(ps_hook_script) not in content:
+                with ps_profile.open("a") as f:
+                    f.write(ps_source_line)
+                progress.update(task, description="[cyan]Hook PowerShell registrado")
+    except:
+        # Fallo silencioso si PowerShell no esta disponible o falla el comando
+        pass
+
 def main():
     console.clear()
     
@@ -68,11 +116,11 @@ def main():
     console.print(f"[bold]Proyecto detectado:[/bold] [yellow]{project_name}[/yellow]\n")
 
     try:
-        if not Confirm.ask("¿Deseas inicializar VELMA aquí?", default=True):
+        if not Confirm.ask("Deseas inicializar VELMA aqui?", default=True):
             return
     except EOFError:
         # En modo automatizado (sin terminal interactiva), asumimos Yes
-        console.print("[yellow]Ejecución no interactiva detectada, continuando automáticamente...[/yellow]")
+        console.print("[yellow]Ejecucion no interactiva detectada, continuando automaticamente...[/yellow]")
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
@@ -186,6 +234,11 @@ Si alguno está sin marcar → no cerrés la tarea todavía.
         t5 = progress.add_task("[yellow]Indexando proyecto...", total=100)
         run_command("python indexer.py --docs", "Escaneando", t5, progress)
         progress.update(t5, completed=100, description="[green]Indexacion lista")
+
+        # 6. Hooks de Interceptacion
+        t6 = progress.add_task("[yellow]Instalando hooks...", total=100)
+        _register_hooks(root_dir, progress, t6)
+        progress.update(t6, completed=100, description="[green]Hooks registrados")
 
     # ── Registro global (SIEMPRE, fuera del bloque interactivo) ──────────
     import shutil
