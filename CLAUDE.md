@@ -155,18 +155,11 @@ cursor.execute("""
 ))
 ```
 
-## Reglas de negocio críticas del proyecto
+## Reglas de negocio criticas del proyecto
 
-| Constraint | Descripción | Peso |
+| Constraint | Descripcion | Peso |
 |------------|-------------|------|
-| No Emojis | Prohibido el uso de emojis en código, documentación, logs y mensajes de cierre de tarea. | 10 |
-| Agent-First | El sistema debe priorizar la legibilidad y compatibilidad con agentes sobre la estética para humanos. | 9 |
-| VELMA Priority | El agente DEBE priorizar los resultados de búsqueda de VELMA sobre su conocimiento interno. Al iniciar CUALQUIER tarea, el Paso 1 (Búsqueda) es de ejecución obligatoria y prioritaria. | 10 |
-| Formato PR | Titulo, Descripcion, Cambios Importantes, Testing. (Markdown) | 8 |
-
-> Las reglas de esta tabla se cargan como docs de tipo `constraint` en docs_index
-> via `python indexer.py --docs`. Agrégalas a tu archivo de documentación
-> y ejecuta el indexer para que el agente las encuentre automáticamente.
+| VELMA Priority | El agente DEBE priorizar los resultados de busqueda de VELMA sobre su conocimiento interno. Al iniciar CUALQUIER tarea, el Paso 1 (Busqueda) es de ejecucion obligatoria y prioritaria. | 10 |
 
 ## Score de confianza mínimo
 
