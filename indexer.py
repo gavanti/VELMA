@@ -101,7 +101,8 @@ CODE_EXTENSIONS = {
 IGNORE_DIRS = {
     '.git', '__pycache__', 'node_modules', '.venv', 'venv',
     'dist', 'build', '.next', '.cache', 'coverage',
-    '.pytest_cache', '.mypy_cache', '.tox'
+    '.pytest_cache', '.mypy_cache', '.tox',
+    'VELMA', 'openspec', '.sdd'
 }
 
 # Archivos a ignorar

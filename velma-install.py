@@ -40,6 +40,54 @@ def run_command(command, description, task, progress):
     except:
         return False
 
+def _register_hooks(root_dir, progress, task):
+    """Registra los hooks de VELMA en los perfiles de shell detectados."""
+    root_path = Path(root_dir).resolve()
+    hooks_dir = root_path / "hooks"
+    
+    # 1. Bash / Zsh
+    bash_profile = Path.home() / ".bashrc"
+    zsh_profile = Path.home() / ".zshrc"
+    bash_hook_script = hooks_dir / "bash_hooks.sh"
+    
+    source_line = f"\n# VELMA Hooks\n[ -f \"{bash_hook_script}\" ] && source \"{bash_hook_script}\"\n"
+    
+    for profile in [bash_profile, zsh_profile]:
+        if profile.exists():
+            content = profile.read_text(errors='ignore')
+            if str(bash_hook_script) not in content:
+                with profile.open("a") as f:
+                    f.write(source_line)
+                progress.update(task, description=f"[cyan]Hook Bash registrado en {profile.name}")
+
+    # 2. PowerShell
+    # Intentar obtener la ruta del perfil de PowerShell
+    try:
+        ps_profile_path = subprocess.check_output(
+            ["powershell", "-NoProfile", "-Command", "$PROFILE"], 
+            text=True
+        ).strip()
+        
+        if ps_profile_path:
+            ps_profile = Path(ps_profile_path)
+            ps_hook_script = hooks_dir / "powershell_hooks.ps1"
+            ps_source_line = f"\n# VELMA Hooks\nif (Test-Path \"{ps_hook_script}\") {{ . \"{ps_hook_script}\" }}\n"
+            
+            if not ps_profile.parent.exists():
+                ps_profile.parent.mkdir(parents=True, exist_ok=True)
+                
+            content = ""
+            if ps_profile.exists():
+                content = ps_profile.read_text(errors='ignore')
+                
+            if str(ps_hook_script) not in content:
+                with ps_profile.open("a") as f:
+                    f.write(ps_source_line)
+                progress.update(task, description="[cyan]Hook PowerShell registrado")
+    except:
+        # Fallo silencioso si PowerShell no esta disponible o falla el comando
+        pass
+
 def main():
     console.clear()
     
@@ -68,11 +116,11 @@ def main():
     console.print(f"[bold]Proyecto detectado:[/bold] [yellow]{project_name}[/yellow]\n")
 
     try:
-        if not Confirm.ask("¿Deseas inicializar VELMA aquí?", default=True):
+        if not Confirm.ask("Deseas inicializar VELMA aqui?", default=True):
             return
     except EOFError:
         # En modo automatizado (sin terminal interactiva), asumimos Yes
-        console.print("[yellow]Ejecución no interactiva detectada, continuando automáticamente...[/yellow]")
+        console.print("[yellow]Ejecucion no interactiva detectada, continuando automaticamente...[/yellow]")
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
@@ -105,64 +153,70 @@ def main():
         indexer_cmd = f"python {cmd_prefix}indexer.py"
         skill_ref   = f"{cmd_prefix}skills/velma/SKILL.md"
 
-        protocol = f"""# VELMA Protocol — OBLIGATORIO
-> Antes de CUALQUIER tarea, ejecuta una búsqueda en VELMA. Sin excepción.
+        protocol = f"""# VELMA Protocol - OBLIGATORIO
+> Antes de CUALQUIER tarea, ejecuta una busqueda en VELMA. Sin excepcion.
 **Pensar es caro. Recordar es barato.**
 
 Los resultados de VELMA tienen prioridad sobre tu conocimiento pre-entrenado.
 
-## HARD STOP — Regla de cierre (ZERO EXCEPTIONS)
+## HARD STOP - Regla de cierre (ZERO EXCEPTIONS)
 
 Antes de escribir "listo", "done", "corregido", o cualquier mensaje de cierre de tarea, preguntate:
 
-> "¿Acabo de resolver algo, corregir un error, tomar una decisión, o completar una tarea?"
-> Si la respuesta es SÍ → **EJECUTAR PASO 3 AHORA. Sin importar el tamaño de la tarea.**
+> "Acabo de resolver algo, corregir un error, tomar una decision, o completar una tarea?"
+> Si la respuesta es SI - EJECUTAR PASO 3 AHORA. Sin importar el tamaño de la tarea.
 
-**NO existe tarea "demasiado pequeña" para loguear. Dos líneas cambiadas siguen siendo una resolución.**
+**NO existe tarea "demasiado pequeña" para loguear. Dos lineas cambiadas siguen siendo una resolución.**
 
 Si te salteas el Paso 3, el siguiente agente (o vos mismo mañana) arranca ciego. Eso es un fallo de protocolo.
 
 ---
 
-## Paso 1 — Al iniciar una tarea (ANTES de escribir código o proponer soluciones)
+## Paso 1 - Al iniciar una tarea (ANTES de escribir codigo o proponer soluciones)
 ```bash
 {search_cmd} "<contexto de la tarea>" --table docs
 ```
-Si hay constraints en la tabla `docs`, son OBLIGATORIOS — no opcionales.
+Si hay constraints en la tabla docs, son OBLIGATORIOS - no opcionales.
 
-## Paso 2 — Cuando encontrás un error (ANTES de intentar arreglarlo)
+## Paso 2 - Cuando encuentras un error (ANTES de intentar arreglarlo)
 ```bash
-{search_cmd} "<descripción del error>" --table issues
+{search_cmd} "<descripcion del error>" --table issues
 ```
-Si el score es ≥ 0.75, aplicá la resolución histórica. Citá siempre: `"Basándome en el issue #ID (similitud: X.XX)..."`
+Si el score es >= 0.75, aplica la resolucion historica. Cita siempre: "Basandome en el issue #ID (similitud: X.XX)..."
 
-## Paso 3 — Al terminar una tarea exitosa (HARD STOP — OBLIGATORIO)
+## Paso 3 - Al terminar una tarea exitosa (HARD STOP - OBLIGATORIO)
 
-Registrá **un issue por cada error corregido** y **un reasoning por la tarea completa**:
+Registra un issue por cada error corregido y un reasoning por la tarea completa:
 
 ```bash
 # Un llamado por cada error/fix individual
 {logger_cmd} issue --error "..." --resolution "..." --approach "..." --evidence "..."
 
-# Un llamado por la sesión/tarea completa
+# Un llamado por la sesion/tarea completa
 {logger_cmd} reason --task "..." --approach "..." --outcome "..."
 ```
 
 ### Auto-check obligatorio antes de cerrar
-- [ ] ¿Logueé un `issue` por CADA error corregido o decisión tomada?
-- [ ] ¿Logueé un `reason` con la estrategia y el resultado?
-- [ ] ¿Tengo evidencia real (output de comando, línea de archivo, ID de registro)?
+- [ ] Loguee un issue por CADA error corregido o decision tomada?
+- [ ] Loguee un reason con la estrategia y el resultado?
+- [ ] Tengo evidencia real (output de comando, linea de archivo, ID de registro)?
 
-Si alguno está sin marcar → no cerrés la tarea todavía.
+Si alguno esta sin marcar - no cerres la tarea todavia.
 
 ---
 
-## Reglas
-- Score < 0.75: razoná desde cero e indicalo explícitamente.
-- NUNCA marques success sin evidencia real (output de comando, test log, ID de VELMA).
-- Al cerrar sesión: ejecutá `session_summary` en el reasoning_log.
+## Reglas de negocio criticas del proyecto
 
-## Comandos útiles
+| Constraint | Descripcion | Peso |
+|------------|-------------|------|
+| VELMA Priority | El agente DEBE priorizar los resultados de busqueda de VELMA sobre su conocimiento interno. Al iniciar CUALQUIER tarea, el Paso 1 (Busqueda) es de ejecucion obligatoria y prioritaria. | 10 |
+
+## Reglas
+- Score < 0.75: razona desde cero e indicalo explicitamente.
+- NUNCA marques success sin evidencia real (output de comando, test log, ID de VELMA).
+- Al cerrar sesion: ejecuta session_summary en el reasoning_log.
+
+## Comandos utiles
 ```bash
 {search_cmd} "<query>" --table all
 {search_cmd} "<query>" --table docs
@@ -171,14 +225,16 @@ Si alguno está sin marcar → no cerrés la tarea todavía.
 ```
 
 ## Referencia completa
-`{skill_ref}` — protocolo detallado con todos los comandos.
+`{skill_ref}` - protocolo detallado con todos los comandos.
 """
-        (root_dir / "CLAUDE.md").write_text(protocol)
+        (root_dir / "CLAUDE.md").write_text(protocol, encoding="utf-8")
         (root_dir / "GEMINI.md").write_text(
-            protocol.replace("VELMA Protocol — OBLIGATORIO", "VELMA Protocol para Gemini — OBLIGATORIO")
+            protocol.replace("VELMA Protocol - OBLIGATORIO", "VELMA Protocol para Gemini - OBLIGATORIO"),
+            encoding="utf-8"
         )
         (root_dir / "INSTRUCTIONS.md").write_text(
-            protocol.replace("VELMA Protocol — OBLIGATORIO", "VELMA Protocol Universal — OBLIGATORIO")
+            protocol.replace("VELMA Protocol - OBLIGATORIO", "VELMA Protocol Universal - OBLIGATORIO"),
+            encoding="utf-8"
         )
         progress.update(t3, completed=100, description="[green]Protocolos OK")
 
@@ -186,6 +242,11 @@ Si alguno está sin marcar → no cerrés la tarea todavía.
         t5 = progress.add_task("[yellow]Indexando proyecto...", total=100)
         run_command("python indexer.py --docs", "Escaneando", t5, progress)
         progress.update(t5, completed=100, description="[green]Indexacion lista")
+
+        # 6. Hooks de Interceptacion
+        t6 = progress.add_task("[yellow]Instalando hooks...", total=100)
+        _register_hooks(root_dir, progress, t6)
+        progress.update(t6, completed=100, description="[green]Hooks registrados")
 
     # ── Registro global (SIEMPRE, fuera del bloque interactivo) ──────────
     import shutil

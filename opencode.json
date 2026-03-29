@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "default": {
+      "prompt": "{{file:skills/velma/SKILL.md}}\n\n### VELMA Context Injection\n{{env:VELMA_CONTEXT}}"
+    }
+  }
+}
