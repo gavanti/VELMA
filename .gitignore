@@ -70,3 +70,13 @@ htmlcov/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# SDD & AI Planning (Ignored for cleaner git history)
+openspec/
+.sdd/
+exploration.md
+proposal.md
+specs/
+design.md
+tasks.md
+

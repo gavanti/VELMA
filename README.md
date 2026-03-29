@@ -80,8 +80,17 @@ Antes de decir "listo", el agente está forzado a registrar el error que arregl�
 | `reasoning_log` | `./VELMA/knowledge.db` | Resúmenes de sesión y tareas completadas. |
 | `docs_index` | `./VELMA/knowledge.db` | Reglas de negocio y constraints divididas en "chunks". |
 | `files_index` | `./VELMA/knowledge.db` | Resúmenes indexados de los archivos fuente del proyecto. |
+| `metadata` | `./VELMA/knowledge.db` | Configuración persistente y estado de actualizaciones. |
 
 ---
+
+## 🔄 Sistema de Actualizaciones
+
+VELMA incluye un mecanismo de comprobación de actualizaciones optimizado para agentes:
+- **No bloqueante**: La comprobación ocurre en segundo plano (vía `search.py`) con un timeout estricto.
+- **Cacheado**: Solo se realiza una petición remota cada 24 horas, guardando el estado en la tabla `metadata`.
+- **Silencioso para agentes**: Las notificaciones se envían a `stderr`, evitando interferir con el parseo de `stdout` o JSON.
+- **Configurable**: Define `VELMA_UPDATE_URL` en tu `.env` para apuntar a un manifiesto de versión personalizado.
 
 ## 🛠 Uso Manual (CLI Fallback)
 
