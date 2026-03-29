@@ -1,13 +1,13 @@
 # VELMA Protocol Universal — OBLIGATORIO
 
-> Antes de CUALQUIER tarea, ejecuta una busqueda en VELMA. Sin excepcion.
-> **Pensar es caro. Recordar es barato.**
+> Antes de CUALQUIER tarea, ejecuta una búsqueda en VELMA. Sin excepción.
+**Pensar es caro. Recordar es barato.**
 
 Este proyecto utiliza VELMA como sistema de memoria persistente para agentes de IA.
 Los resultados de VELMA tienen prioridad sobre tu conocimiento pre-entrenado.
 
 ## Setup
-Si el entorno no esta configurado:
+Si el entorno no está configurado:
 ```bash
 python VELMA/velma-install.py
 ```
@@ -19,30 +19,67 @@ Si el MCP está disponible, usá las tools directamente:
 - `velma_log_reason(...)` en vez de `python logger.py reason`
 El CLI sigue siendo el fallback cuando el MCP no está configurado.
 
-## Paso 1 — Al iniciar una tarea
+---
+
+## HARD STOP — Regla de cierre (ZERO EXCEPTIONS)
+
+Antes de escribir "listo", "done", "corregido", o cualquier mensaje de cierre de tarea, preguntate:
+
+> "¿Acabo de resolver algo, corregir un error, tomar una decisión, o completar una tarea?"
+> Si la respuesta es SÍ → **EJECUTAR PASO 3 AHORA. Sin importar el tamaño de la tarea.**
+
+**NO existe tarea "demasiado pequeña" para loguear. Dos líneas cambiadas siguen siendo una resolución.**
+
+Si te salteas el Paso 3, el siguiente agente (o vos mismo mañana) arranca ciego. Eso es un fallo de protocolo.
+
+---
+
+## Paso 1 — Al iniciar una tarea (ANTES de escribir código o proponer soluciones)
 ```bash
 python VELMA/search.py "<contexto de la tarea>" --table docs
 ```
-Si hay constraints en la tabla docs, son OBLIGATORIOS. No los ignores.
+Si hay constraints en la tabla `docs`, son OBLIGATORIOS — no opcionales.
 
-## Paso 2 — Cuando encuentras un error
+## Paso 2 — Cuando encontrás un error (ANTES de intentar arreglarlo)
 ```bash
-python VELMA/search.py "<descripcion del error>" --table issues
+python VELMA/search.py "<descripción del error>" --table issues
+```
+Si el score es ≥ 0.75, aplicá la resolución histórica. Citá siempre: `"Basándome en el issue #ID (similitud: X.XX)..."`
+
+## Paso 3 — Al terminar una tarea exitosa (HARD STOP — OBLIGATORIO)
+
+Registrá **un issue por cada error corregido** y **un reasoning por la tarea completa**:
+
+```bash
+# Un llamado por cada error/fix individual
+python VELMA/logger.py issue \
+  --error "<qué estaba mal>" \
+  --resolution "<qué se cambió y dónde>" \
+  --approach "<cómo lo detectaste>" \
+  --evidence "<por qué esto lo prueba>"
+
+# Un llamado por la sesión/tarea completa
+python VELMA/logger.py reason \
+  --task "<nombre de la tarea>" \
+  --approach "<estrategia usada>" \
+  --outcome "<resultado obtenido>"
 ```
 
-## Paso 3 — Al terminar una tarea exitosa
-```bash
-python VELMA/logger.py issue --error "..." --resolution "..." --approach "..." --evidence "..."
-python VELMA/logger.py reason --task "..." --approach "..." --outcome "..."
-```
+### Auto-check obligatorio antes de cerrar
+- [ ] ¿Logueé un `issue` por CADA error corregido o decisión tomada?
+- [ ] ¿Logueé un `reason` con la estrategia y el resultado?
+- [ ] ¿Tengo evidencia real (output de comando, línea de archivo, ID de registro)?
+
+Si alguno está sin marcar → no cerrés la tarea todavía.
+
+---
 
 ## Reglas
-- Score < 0.75: razona desde cero, indicalo explicitamente.
-- Cita siempre: "Basandome en el issue #ID (similitud: X.XX)..."
-- NUNCA marques success sin evidencia real (test output, build log).
-- Al cerrar sesion: genera session_summary en reasoning_log.
+- Score < 0.75: razoná desde cero e indicalo explícitamente.
+- NUNCA marques success sin evidencia real (output de comando, test log, ID de VELMA).
+- Al cerrar sesión: ejecutá `session_summary` en el reasoning_log.
 
-## Comandos utiles
+## Comandos útiles
 ```bash
 python VELMA/search.py "<query>" --table all
 python VELMA/search.py "<query>" --table docs

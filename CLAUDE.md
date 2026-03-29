@@ -15,10 +15,30 @@ Si el MCP está disponible, usá las tools directamente:
 - `velma_log_reason(...)` en vez de `python logger.py reason`
 El CLI sigue siendo el fallback cuando el MCP no está configurado.
 
-## Antes de empezar cualquier tarea
+## ⚡ Delegación en Segundo Plano (Background Task)
+El registro simple (`velma_log_issue`) es instantáneo (milisegundos). 
+Sin embargo, **la indexación masiva de archivos** (`python VELMA/indexer.py --all`) es pesada. 
+Si estás en OpenCode u otro entorno que soporte delegación, **DEBES usar la tool `delegate`** para correr el indexador en segundo plano y no bloquear el flujo de trabajo del usuario.
+
+---
+
+## HARD STOP — Regla de cierre (ZERO EXCEPTIONS)
+
+Antes de escribir "listo", "done", "corregido", o cualquier mensaje de cierre de tarea, preguntate:
+
+> "¿Acabo de resolver algo, corregir un error, tomar una decisión, o completar una tarea?"
+> Si la respuesta es SÍ → **EJECUTAR PASO 3 AHORA. Sin importar el tamaño de la tarea.**
+
+**NO existe tarea "demasiado pequeña" para loguear. Dos líneas cambiadas siguen siendo una resolución.**
+
+Si te salteas el Paso 3, el siguiente agente (o vos mismo mañana) arranca ciego. Eso es un fallo de protocolo.
+
+---
+
+## Paso 1 — Al iniciar una tarea (ANTES de escribir código o proponer soluciones)
 
 1. Ejecuta `search.py` con el contexto de la tarea. **ESTO NO ES OPCIONAL**.
-2. Si hay constraints relevantes en la tabla `docs`, son obligatorios — no las ignores.
+2. Si hay constraints relevantes en la tabla `docs`, son OBLIGATORIOS — no opcionales.
 3. Si hay issues similares resueltos, úsalos como punto de partida prioritario.
 
 ```bash
@@ -27,7 +47,7 @@ El CLI sigue siendo el fallback cuando el MCP no está configurado.
 python search.py "conexión base de datos" --table docs
 ```
 
-## Cuando encuentras un error
+## Paso 2 — Cuando encontrás un error (ANTES de intentar arreglarlo)
 
 1. **Busca en issues_log** antes de intentar resolver
    ```bash
@@ -36,30 +56,42 @@ python search.py "conexión base de datos" --table docs
 
 2. **Registra cada intento fallido** en `attempts[]`
 
-3. **Solo marca `outcome='success'` con evidencia real** (test output, build log)
+Si el score es ≥ 0.75, aplicá la resolución histórica. Citá siempre: `"Basándome en el issue #ID (similitud: X.XX)..."`
 
-4. **NUNCA marques success porque el código "se ve correcto"**
+## Paso 3 — Al terminar una tarea exitosa (HARD STOP — OBLIGATORIO)
+
+Registrá **un issue por cada error corregido** y **un reasoning por la tarea completa**:
 
 ### Ejemplo de registro de conocimiento (Logger):
 
 El agente **DEBE** usar `logger.py` para guardar nuevos aprendizajes:
 
 ```bash
-# Registrar un error resuelto
+# Un llamado por cada error/fix individual
 python VELMA/logger.py issue \
-  --error "Descripción del error" \
-  --resolution "Solución técnica" \
-  --approach "Razonamiento" \
-  --evidence "Logs del test"
+  --error "<qué estaba mal>" \
+  --resolution "<qué se cambió y dónde>" \
+  --approach "<cómo lo detectaste>" \
+  --evidence "<por qué esto lo prueba>"
 
-# Registrar un proceso o tarea finalizada
+# Un llamado por la sesión/tarea completa
 python VELMA/logger.py reason \
-  --task "Nombre de la tarea" \
-  --approach "Pasos realizados" \
-  --outcome "Resultado final"
+  --task "<nombre de la tarea>" \
+  --approach "<estrategia usada>" \
+  --outcome "<resultado obtenido>"
 ```
 
 Los registros entran como `raw` y solo serán visibles para otros agentes después de que un humano los verifique en el dashboard.
+
+### Auto-check obligatorio antes de cerrar
+
+- [ ] ¿Logueé un `issue` por CADA error corregido o decisión tomada?
+- [ ] ¿Logueé un `reason` con la estrategia y el resultado?
+- [ ] ¿Tengo evidencia real (output de comando, línea de archivo, ID de registro)?
+
+Si alguno está sin marcar → no cerrés la tarea todavía.
+
+---
 
 ## Al resolver un error
 

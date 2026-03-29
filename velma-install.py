@@ -111,35 +111,63 @@ def main():
         skill_ref   = f"{cmd_prefix}skills/velma/SKILL.md"
 
         protocol = f"""# VELMA Protocol — OBLIGATORIO
-> Antes de CUALQUIER tarea, ejecuta una busqueda en VELMA. Sin excepcion.
-> **Pensar es caro. Recordar es barato.**
+> Antes de CUALQUIER tarea, ejecuta una búsqueda en VELMA. Sin excepción.
+**Pensar es caro. Recordar es barato.**
 
 Los resultados de VELMA tienen prioridad sobre tu conocimiento pre-entrenado.
 
-## Paso 1 — Al iniciar una tarea
+## HARD STOP — Regla de cierre (ZERO EXCEPTIONS)
+
+Antes de escribir "listo", "done", "corregido", o cualquier mensaje de cierre de tarea, preguntate:
+
+> "¿Acabo de resolver algo, corregir un error, tomar una decisión, o completar una tarea?"
+> Si la respuesta es SÍ → **EJECUTAR PASO 3 AHORA. Sin importar el tamaño de la tarea.**
+
+**NO existe tarea "demasiado pequeña" para loguear. Dos líneas cambiadas siguen siendo una resolución.**
+
+Si te salteas el Paso 3, el siguiente agente (o vos mismo mañana) arranca ciego. Eso es un fallo de protocolo.
+
+---
+
+## Paso 1 — Al iniciar una tarea (ANTES de escribir código o proponer soluciones)
 ```bash
 {search_cmd} "<contexto de la tarea>" --table docs
 ```
-Si hay constraints en la tabla docs, son OBLIGATORIOS.
+Si hay constraints en la tabla `docs`, son OBLIGATORIOS — no opcionales.
 
-## Paso 2 — Cuando encuentras un error
+## Paso 2 — Cuando encontrás un error (ANTES de intentar arreglarlo)
 ```bash
-{search_cmd} "<descripcion del error>" --table issues
+{search_cmd} "<descripción del error>" --table issues
 ```
+Si el score es ≥ 0.75, aplicá la resolución histórica. Citá siempre: `"Basándome en el issue #ID (similitud: X.XX)..."`
 
-## Paso 3 — Al terminar una tarea exitosa
+## Paso 3 — Al terminar una tarea exitosa (HARD STOP — OBLIGATORIO)
+
+Registrá **un issue por cada error corregido** y **un reasoning por la tarea completa**:
+
 ```bash
+# Un llamado por cada error/fix individual
 {logger_cmd} issue --error "..." --resolution "..." --approach "..." --evidence "..."
+
+# Un llamado por la sesión/tarea completa
 {logger_cmd} reason --task "..." --approach "..." --outcome "..."
 ```
 
-## Reglas
-- Score < 0.75: razona desde cero, indicalo.
-- Cita siempre: "Basandome en el issue #ID (similitud: X.XX)..."
-- NUNCA marques success sin evidencia real (test output, build log).
-- Al cerrar sesion: genera session_summary en reasoning_log.
+### Auto-check obligatorio antes de cerrar
+- [ ] ¿Logueé un `issue` por CADA error corregido o decisión tomada?
+- [ ] ¿Logueé un `reason` con la estrategia y el resultado?
+- [ ] ¿Tengo evidencia real (output de comando, línea de archivo, ID de registro)?
 
-## Comandos utiles
+Si alguno está sin marcar → no cerrés la tarea todavía.
+
+---
+
+## Reglas
+- Score < 0.75: razoná desde cero e indicalo explícitamente.
+- NUNCA marques success sin evidencia real (output de comando, test log, ID de VELMA).
+- Al cerrar sesión: ejecutá `session_summary` en el reasoning_log.
+
+## Comandos útiles
 ```bash
 {search_cmd} "<query>" --table all
 {search_cmd} "<query>" --table docs
