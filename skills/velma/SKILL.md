@@ -1,16 +1,22 @@
 # VELMA - Protocolo de Memoria Externa
 
-VELMA es el sistema de memoria persistente del desarrollador. Sigue el principio fundamental: **"Pensar es caro. Recordar es barato"**. Esta skill permite al agente recuperar soluciones a errores pasados y reglas de negocio sin consumir tokens de razonamiento innecesarios.
+VELMA es el sistema de memoria persistente del desarrollador. Sigue el principio fundamental: "Pensar es caro. Recordar es barato". Esta skill permite al agente recuperar soluciones a errores pasados y reglas de negocio sin consumir tokens de razonamiento innecesarios.
 
-## 🔴 PROTOCOLO OBLIGATORIO (Pre-condición)
+## PROTOCOLO OBLIGATORIO (Pre-condicion)
 
-El agente **DEBE** ejecutar este protocolo en los siguientes eventos:
+El agente DEBE ejecutar este protocolo en los siguientes eventos:
 
-1.  **Inicio de sesión/Nueva tarea**: Antes de proponer un plan, buscar el nombre de la tarea en la tabla `docs` para entender los constraints.
-2.  **Encuentro de un error**: Antes de intentar arreglarlo, buscar la descripción del error en la tabla `issues` para encontrar la resolución histórica.
-3.  **Finalización exitosa**: Después de verificar una solución con tests, registrar el aprendizaje en VELMA.
+1.  Inicio de sesion/Nueva tarea: Antes de proponer un plan, buscar el nombre de la tarea en la tabla docs para entender los constraints.
+2.  Encuentro de un error: Antes de intentar arreglarlo, buscar la descripcion del error en la tabla issues para encontrar la resolucion historica.
+3.  Finalizacion exitosa: Despues de verificar una solucion con tests, registrar el aprendizaje en VELMA.
 
-## 🔍 Herramientas de Búsqueda (Retrieval)
+## AUTO-HOOKS (Interceptacion Automatica)
+
+VELMA instala hooks en el shell que interceptan comandos como "claude", "gemini" y "opencode".
+- Si el comando se ejecuta sin --no-velma, el sistema inyecta automaticamente el contexto de busqueda en la variable de entorno VELMA_CONTEXT.
+- El agente DEBE leer esta variable al iniciar la sesion para obtener memoria historica relevante.
+
+## Herramientas de Busqueda (Retrieval)
 
 ### MCP Tools (Recomendado)
 - `velma_search(query, table)`

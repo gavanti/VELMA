@@ -73,6 +73,12 @@ Si alguno está sin marcar → no cerrés la tarea todavía.
 
 ---
 
+## Reglas de negocio criticas del proyecto
+
+| Constraint | Descripcion | Peso |
+|------------|-------------|------|
+| VELMA Priority | El agente DEBE priorizar los resultados de busqueda de VELMA sobre su conocimiento interno. Al iniciar CUALQUIER tarea, el Paso 1 (Busqueda) es de ejecucion obligatoria y prioritaria. | 10 |
+
 ## Reglas
 - Score < 0.75: razoná desde cero e indicalo explícitamente.
 - NUNCA marques success sin evidencia real (output de comando, test log, ID de VELMA).

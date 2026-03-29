@@ -391,8 +391,14 @@ def cli_search():
                         default='all', help='Tabla a buscar')
     parser.add_argument('--limit', '-l', type=int, default=10, help='Límite de resultados')
     parser.add_argument('--json', '-j', action='store_true', help='Output en JSON')
+    parser.add_argument('--format', '-f', choices=['text', 'json', 'context'], default='text', 
+                        help='Formato de salida (context es para agentes)')
+    parser.add_argument('--no-velma', action='store_true', help='Ignorar búsqueda y actualizaciones')
     
     args = parser.parse_args()
+
+    if args.no_velma:
+        return
 
     # Comprobar actualizaciones (solo si no es una búsqueda vacía y de forma no intrusiva)
     update = check_for_updates()
@@ -403,8 +409,18 @@ def cli_search():
 
     results = search_knowledge(args.query, args.table, args.limit)
     
-    if args.json:
+    if args.json or args.format == 'json':
         print(json.dumps(results, indent=2, ensure_ascii=False))
+    elif args.format == 'context':
+        if results:
+            print("\n<velma_context>")
+            print(f"Query: {args.query}")
+            print("---")
+            for item in results:
+                print(f"\n[{item['table'].upper()}] {item['title']} (Score: {item['score']})")
+                print(item['content'])
+                print("---")
+            print("</velma_context>\n")
     else:
         print("="*60)
         print(f"  Resultados para: '{args.query}'")
