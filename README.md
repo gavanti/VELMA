@@ -23,7 +23,7 @@ Sistema de memoria persistente para agentes de IA. Convierte el razonamiento en 
 
 ---
 
-## ⚡ Instalación Rápida (Un solo Enter)
+## Instalacion Rapida (Un solo Enter)
 
 Si estás en Windows (PowerShell), simplemente navega a tu proyecto y ejecuta el instalador mágico:
 
@@ -40,7 +40,7 @@ El instalador:
 
 ---
 
-## 🧠 El Nuevo Modus Operandi (v1.0.0+)
+## El Nuevo Modus Operandi (v1.0.0+)
 
 VELMA ha evolucionado a una arquitectura nativa, limpia y ultra-rápida.
 
@@ -63,7 +63,7 @@ Antes de decir "listo", el agente está forzado a registrar el error que arregl�
 
 ---
 
-## 🏗 Arquitectura y Stack Tecnológico
+## Arquitectura y Stack Tecnologico
 
 | Componente | Tecnología | Propósito |
 |------------|------------|-----------|
@@ -84,7 +84,7 @@ Antes de decir "listo", el agente está forzado a registrar el error que arregl�
 
 ---
 
-## 🔄 Sistema de Actualizaciones
+## Sistema de Actualizaciones
 
 VELMA incluye un mecanismo de comprobación de actualizaciones optimizado para agentes:
 - **No bloqueante**: La comprobación ocurre en segundo plano (vía `search.py`) con un timeout estricto.
