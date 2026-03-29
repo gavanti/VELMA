@@ -348,6 +348,18 @@ def create_database():
             merged_by TEXT NOT NULL
         );
     """)
+
+    # ============================================
+    # TABLA: metadata - configuración y estado persistente
+    # ============================================
+    print("    Creando tabla metadata...")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS metadata (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
     
     # ============================================
     #  ndices adicionales para performance
@@ -408,6 +420,9 @@ GITHUB_TOKEN=
 REPO_OWNER=
 REPO_NAME=
 
+# Actualizaciones (Fase 5)
+VELMA_UPDATE_URL=https://raw.githubusercontent.com/Gavanti/VELMA/main/manifest.json
+
 # Configuraci n del dev
 DEV_NAME=developer
 PROJECT_NAME=my_project
@@ -424,14 +439,20 @@ def create_requirements():
 numpy>=1.24.0
 python-dotenv>=1.0.0
 
+# Embeddings via Ollama (reemplaza sentence-transformers/HuggingFace)
+ollama>=0.3.0
+
+# MCP Server
+mcp>=1.0.0
+
+# Web panel (Fase 3)
+flask>=2.3.0
+
 # Optional: For semantic search with local embeddings
 # sentence-transformers>=2.2.0
 
 # Optional: For file watching
 # watchdog>=3.0.0
-
-# Web panel (Fase 3)
-flask>=2.3.0
 
 # Optional: Vector search extension
 # sqlite-vec>=0.1.0
@@ -449,15 +470,101 @@ VELMA - Knowledge Base Utilities
 Funciones auxiliares para el sistema de knowledge base
 """
 
+import os
 import hashlib
 import json
+import sqlite3
+import urllib.request
 import numpy as np
 from pathlib import Path
 from datetime import datetime, timedelta
+from typing import Optional, Dict
 
 def get_db_path():
     """Retorna la ruta absoluta a la base de datos knowledge.db"""
     return str(Path(__file__).parent / "knowledge.db")
+
+def get_metadata(key: str, default: any = None) -> any:
+    """Obtiene un valor de la tabla metadata"""
+    try:
+        conn = sqlite3.connect(get_db_path())
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM metadata WHERE key = ?", (key,))
+        row = cursor.fetchone()
+        conn.close()
+        return row[0] if row else default
+    except:
+        return default
+
+def set_metadata(key: str, value: any):
+    """Guarda un valor en la tabla metadata"""
+    try:
+        conn = sqlite3.connect(get_db_path())
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO metadata (key, value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = CURRENT_TIMESTAMP
+        """, (key, str(value)))
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        return False
+
+def check_for_updates() -> Optional[Dict]:
+    """
+    Comprueba si hay actualizaciones del tool o del KB.
+    Frecuencia: una vez cada 24h.
+    Retorna datos de la actualizacion si hay una disponible, o None.
+    """
+    last_check = get_metadata('last_update_check')
+    
+    # Si ya se comprobo hace menos de 24h, omitir
+    if last_check:
+        try:
+            last_date = datetime.fromisoformat(last_check)
+            if datetime.now() < last_date + timedelta(hours=24):
+                return None
+        except:
+            pass
+            
+    # Marcar comprobacion ahora (para evitar reintento inmediato si falla red)
+    set_metadata('last_update_check', datetime.now().isoformat())
+    
+    # URL de manifiesto (Placeholder, configurable via .env)
+    update_url = os.getenv('VELMA_UPDATE_URL')
+    if not update_url:
+        return None
+        
+    try:
+        # Peticion no bloqueante (con timeout corto)
+        with urllib.request.urlopen(update_url, timeout=2) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode())
+                
+                # Leer version local
+                version_path = Path(__file__).parent / "version.txt"
+                local_version = version_path.read_text().strip() if version_path.exists() else "0.0.0"
+                
+                remote_version = data.get('tool_version', local_version)
+                
+                # Comparar versiones
+                if remote_version > local_version:
+                    update_info = {
+                        'current': local_version,
+                        'latest': remote_version,
+                        'message': data.get('message', 'Nueva version disponible'),
+                        'url': data.get('url', 'https://github.com/Gavanti/VELMA')
+                    }
+                    return update_info
+    except:
+        # Fallo de red silencioso
+        pass
+        
+    return None
 
 def compute_hash(text: str) -> str:
     """Calcula hash MD5 de un texto"""

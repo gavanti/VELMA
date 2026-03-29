@@ -15,7 +15,7 @@ Si el MCP está disponible, usá las tools directamente:
 - `velma_log_reason(...)` en vez de `python logger.py reason`
 El CLI sigue siendo el fallback cuando el MCP no está configurado.
 
-## ⚡ Delegación en Segundo Plano (Background Task)
+## Delegacion en Segundo Plano (Background Task)
 El registro simple (`velma_log_issue`) es instantáneo (milisegundos). 
 Sin embargo, **la indexación masiva de archivos** (`python VELMA/indexer.py --all`) es pesada. 
 Si estás en OpenCode u otro entorno que soporte delegación, **DEBES usar la tool `delegate`** para correr el indexador en segundo plano y no bloquear el flujo de trabajo del usuario.
@@ -157,12 +157,10 @@ cursor.execute("""
 
 ## Reglas de negocio críticas del proyecto
 
-<!-- PERSONALIZAR: Agrega aquí las constraints específicas de tu proyecto.
-     Usa el formato de tabla. El peso indica prioridad (10 = máximo). -->
-
 | Constraint | Descripción | Peso |
 |------------|-------------|------|
-| _(agrega tus reglas aquí)_ | _(descripción)_ | _(1-10)_ |
+| No Emojis | Prohibido el uso de emojis en código, documentación, logs y mensajes de cierre de tarea. | 10 |
+| Agent-First | El sistema debe priorizar la legibilidad y compatibilidad con agentes sobre la estética para humanos. | 9 |
 
 > Las reglas de esta tabla se cargan como docs de tipo `constraint` en docs_index
 > via `python indexer.py --docs`. Agrégalas a tu archivo de documentación

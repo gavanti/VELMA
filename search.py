@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 
-from kb_utils import cosine_similarity, encode_text, OllamaEnricher, get_db_path
+from kb_utils import cosine_similarity, encode_text, OllamaEnricher, get_db_path, check_for_updates
 
 DB_NAME = get_db_path()
 DEFAULT_K = 60
@@ -393,6 +393,14 @@ def cli_search():
     parser.add_argument('--json', '-j', action='store_true', help='Output en JSON')
     
     args = parser.parse_args()
+
+    # Comprobar actualizaciones (solo si no es una búsqueda vacía y de forma no intrusiva)
+    update = check_for_updates()
+    if update:
+        sys.stderr.write(f"\n[UPDATE] {update['message']}\n")
+        sys.stderr.write(f"         Versión: {update['current']} -> {update['latest']}\n")
+        sys.stderr.write(f"         Link: {update['url']}\n\n")
+
     results = search_knowledge(args.query, args.table, args.limit)
     
     if args.json:
